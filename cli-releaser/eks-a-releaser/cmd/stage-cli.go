@@ -20,7 +20,7 @@ var (
 // stageCliCmd represents the stageCli command
 var stageCliCmd = &cobra.Command{
 	Use:   "stage-cli",
-	Short: "A brief description of your command",
+	Short: "increments version files to trigger staging bundle release",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. `,
 
