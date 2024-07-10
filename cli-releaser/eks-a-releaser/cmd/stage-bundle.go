@@ -42,17 +42,17 @@ and usage of using your command.`,
 // this function is responsible for invoking the 3 other functions 
 // will create a PR with 3 commits, from eks-a-releaser branch targetting main branch (of my forked copy)
 func updateAllThree() (error){
-	errOne := updateFileContentsA()
+	errOne := updateDevBundleNumber()
 	if errOne != nil{
 		log.Panic("error calling function A")
 	}
 
-	errTwo := updateFileContentsB()
+	errTwo := updateDevCliMaxVersion()
 	if errTwo != nil{
 		log.Panic("error calling function B")
 	}
 
-	errThree := updateFileContentsC()
+	errThree := updateDevCliMinVersion()
 	if errThree != nil{
 		log.Panic("error calling function C")
 	}
@@ -65,7 +65,7 @@ func updateAllThree() (error){
 // this function is responsible for updating the bundle number file in order to trigger the staging bundle release pipeline 
 // the function accesses the trigger file and retrieves the value assigned to bundle number : #
 // a new commit and PR is then created using the retrieved value from the trigger file
-func updateFileContentsA() (error) {
+func updateDevBundleNumber() (error) {
 	//create client
 	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
 	ctx := context.Background()
@@ -82,7 +82,7 @@ func updateFileContentsA() (error) {
 	}
 
 	// Find the line containing the identifier
-	snippetStartIdentifierB := "bundle-number:"
+	snippetStartIdentifierB := "dev/bundle-number:"
 	lines := strings.Split(content, "\n")
 	startIndex := -1
 	endIndex := -1
@@ -132,7 +132,7 @@ func updateFileContentsA() (error) {
 	}
 
 	commit := &github.Commit{
-	Message: github.String(fmt.Sprintf("Increment bundle number file in order to trigger staging bundle pipeline", desiredPart)),
+	Message: github.String("Increment bundle number file"),
 	Tree:    &github.Tree{SHA: github.String(newTreeSHA)},
 	Author:  author,
 	Parents: []*github.Commit{{SHA: github.String(latestCommitSha)}},
@@ -180,7 +180,7 @@ func updateFileContentsA() (error) {
 // this function is responsible for updating the cli max version file in order to trigger the staging bundle release pipeline 
 // the function accesses the trigger file and retrieves the first line of code containg the version e.g "v0.0.0"
 // a new commit and PR is then created using the retrieved value from the trigger file
-func updateFileContentsB() (error) {
+func updateDevCliMaxVersion() (error) {
 	//create client
 	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
 	ctx := context.Background()
@@ -198,7 +198,7 @@ func updateFileContentsB() (error) {
 	}
 
 	// Find the line containing the identifier
-	snippetStartIdentifierB := "version:"
+	snippetStartIdentifierB := "dev/CLI_MAX_VERSION:"
 	lines := strings.Split(content, "\n")
 	startIndex := -1
 	endIndex := -1
@@ -214,11 +214,11 @@ func updateFileContentsB() (error) {
 		log.Panic("snippet not found....")
 	}
 
-	// holds string for base_ref: release-0.19
-	bundleNumberLine := lines[startIndex]
+	// holds string
+	cliMaxVer := lines[startIndex]
 
 	// split string to isolate bundle number
-	parts := strings.Split(bundleNumberLine, ": ")
+	parts := strings.Split(cliMaxVer, ": ")
 
 	// holds bundle number value as string
 	desiredPart := parts[1]
@@ -247,7 +247,7 @@ func updateFileContentsB() (error) {
 	}
 
 	commit := &github.Commit{
-	Message: github.String(fmt.Sprintf("Update CLI Max Version number in order to trigger staging bundle pipeline", desiredPart)),
+	Message: github.String("Update CLI Max Version number"),
 	Tree:    &github.Tree{SHA: github.String(newTreeSHA)},
 	Author:  author,
 	Parents: []*github.Commit{{SHA: github.String(latestCommitSha)}},
@@ -276,7 +276,7 @@ func updateFileContentsB() (error) {
 // this function is responsible for updating the cli min version file in order to trigger the staging bundle release pipeline 
 // the function accesses the trigger file and retrieves the first line of code containg the version e.g "v0.0.0"
 // a new commit and PR is then created using the retrieved value from the trigger file
-func updateFileContentsC() (error) {
+func updateDevCliMinVersion() (error) {
 
 	//create client
 	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
@@ -295,7 +295,7 @@ func updateFileContentsC() (error) {
 	}
 
 	// Find the line containing the identifier
-	snippetStartIdentifierB := "version:"
+	snippetStartIdentifierB := "dev/CLI_MIN_VERSION:"
 	lines := strings.Split(content, "\n")
 	startIndex := -1
 	endIndex := -1
@@ -344,7 +344,7 @@ func updateFileContentsC() (error) {
 	}
 
 	commit := &github.Commit{
-	Message: github.String(fmt.Sprintf("Update CLI Min Version number in order to trigger staging bundle pipeline", desiredPart)),
+	Message: github.String("Update CLI Min Version number"),
 	Tree:    &github.Tree{SHA: github.String(newTreeSHA)},
 	Author:  author,
 	Parents: []*github.Commit{{SHA: github.String(latestCommitSha)}},

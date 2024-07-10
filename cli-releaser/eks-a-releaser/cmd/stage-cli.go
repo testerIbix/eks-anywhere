@@ -4,11 +4,8 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"context"
 	"fmt"
-	"os"
 
-	"github.com/google/go-github/v62/github"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +22,7 @@ var stageCliCmd = &cobra.Command{
 and usage of using your command. `,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		returnedContent, err := updateFileContentsTwoCLI()
+		returnedContent, err := updateAllStageCliFiles()
 		if err != nil {
 			fmt.Print(err)
 		}
@@ -34,45 +31,20 @@ and usage of using your command. `,
 }
 
 
-func updateFileContentsCLI()(string,error){
-	//create client
-	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
-	ctx := context.Background()
-	client := github.NewClient(nil).WithAuthToken(accessToken)
+// this function is responsible for updating the release number file 
+// the function accesses the trigger file and retrieves the value assigned to bundle number : #
+// a new commit and PR is then created using the retrieved value from the trigger file
+func updateAllStageCliFiles()(error){
 
-	fileContent, _, _, err := client.Repositories.GetContents(ctx, repoOwner, repoName, cliReleaseNumPath, nil)
-	if err != nil {
-		fmt.Print(err)
-	}
 
-	// variable content holds content for entire file
-	content, err := fileContent.GetContent()
-	if err != nil {
-		fmt.Print(err)
-	}
-
-	// returns file value currently 39
-	return content, nil
 }
 
-func updateFileContentsTwoCLI()(string,error){
-	//create client
-	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
-	ctx := context.Background()
-	client := github.NewClient(nil).WithAuthToken(accessToken)
 
-	fileContent, _, _, err := client.Repositories.GetContents(ctx, repoOwner, repoName, cliReleaseVerPath, nil)
-	if err != nil {
-		fmt.Print(err)
-	}
 
-	// variable content holds content for entire file
-	content, err := fileContent.GetContent()
-	if err != nil {
-		fmt.Print(err)
-	}
+func updateReleaseNumber()(){
 
-	// returns file value currently v0.16.0
-	return content, nil
 }
 
+func updateReleaseVersion()(){
+
+}
