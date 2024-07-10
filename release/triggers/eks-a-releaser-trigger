@@ -1,2 +1,8 @@
-version: v0.0.6
-bundle-number: 65
+dev/bundle-number: 65
+dev/CLI_MAX_VERSION: v0.0.6
+dev/CLI_MIN_VERSION: v0.0.6
+prod/CLI_MAX_VERSION: v0.0.0
+prod/CLI_MIN_VERSION: v0.0.0 
+prod/bundle-number: 70
+RELEASE_NUMBER: 52
+RELEASE_VERSION: v0.0.0
