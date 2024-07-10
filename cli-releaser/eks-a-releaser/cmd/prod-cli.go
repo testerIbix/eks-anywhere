@@ -15,33 +15,32 @@ import (
 )
 
 var (
-	cliReleaseNumPath  = "release/triggers/eks-a-release/development/RELEASE_NUMBER"
-	cliReleaseVerPath  = "release/triggers/eks-a-release/development/RELEASE_VERSION"
+	prodCliReleaseNumPath  = "release/triggers/eks-a-release/production/RELEASE_NUMBER"
+	prodCliReleaseVerPath  = "release/triggers/eks-a-release/production/RELEASE_VERSION"
 )
 
-// stageCliCmd represents the stageCli command
-var stageCliCmd = &cobra.Command{
-	Use:   "stage-cli",
-	Short: "creates a PR containing 2 commits, each updating the contents of a singular file intended for staging cli release",
-	Long: `Retrieves updated content for development : release_number and release_version. 
+// prodCliCmd represents the prodCli command
+var prodCliCmd = &cobra.Command{
+	Use:   "prod-cli",
+	Short: "creates a PR containing 2 commits, each updating the contents of a singular file intended for prod cli release",
+	Long: `Retrieves updated content for production : release_number and release_version. 
 	Writes the updated changes to the two files and raises a PR with the two commits.`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		updateAllStageCliFiles()
+		updateAllProdCliFiles()
 	},
 }
 
 
-
 // runs both updates functions
-func updateAllStageCliFiles(){
+func updateAllProdCliFiles(){
 
-	errOne := updateReleaseNumber()
+	errOne := updateProdReleaseNumber()
 	if errOne != nil{
 		log.Panic(errOne)
 	}
 
-	errTwo := updateReleaseVersion()
+	errTwo := updateProdReleaseVersion()
 	if errTwo != nil{
 		log.Panic(errTwo)
 	}
@@ -49,7 +48,7 @@ func updateAllStageCliFiles(){
 
 
 // updates release number + creates PR
-func updateReleaseNumber()(error){
+func updateProdReleaseNumber()(error){
 	//create client
 	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
 	ctx := context.Background()
@@ -101,7 +100,7 @@ func updateReleaseNumber()(error){
 	latestCommitSha := ref.Object.GetSHA()
 
 	entries := []*github.TreeEntry{}
-	entries = append(entries, &github.TreeEntry{Path: github.String(strings.TrimPrefix(cliReleaseNumPath, "/")), Type: github.String("blob"), Content: github.String(string(desiredPart)), Mode: github.String("100644")})
+	entries = append(entries, &github.TreeEntry{Path: github.String(strings.TrimPrefix(prodCliReleaseNumPath, "/")), Type: github.String("blob"), Content: github.String(string(desiredPart)), Mode: github.String("100644")})
 	tree, _, err := client.Git.CreateTree(ctx,forkedRepoOwner, repoName, *ref.Object.SHA, entries)
 	if err != nil {
 		 return fmt.Errorf("error creating tree %s", err)
@@ -141,7 +140,7 @@ func updateReleaseNumber()(error){
 	// create pull request
 	base := "main"
 	head := fmt.Sprintf("%s:%s", forkedRepoOwner, "eks-a-releaser")
-	title := "Update version files to stage cli release"
+	title := "Update version files to stage prod cli release"
 	body := "This pull request is responsible for updating the contents of 3 seperate files in order to trigger the staging bundle release pipeline"
 
 	newPR := &github.NewPullRequest{
@@ -164,7 +163,7 @@ func updateReleaseNumber()(error){
 
 
 // updates release version + commits
-func updateReleaseVersion()(error){
+func updateProdReleaseVersion()(error){
 
 	//create client
 	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
@@ -216,7 +215,7 @@ func updateReleaseVersion()(error){
 	latestCommitSha := ref.Object.GetSHA()
 
 	entries := []*github.TreeEntry{}
-	entries = append(entries, &github.TreeEntry{Path: github.String(strings.TrimPrefix(cliReleaseVerPath, "/")), Type: github.String("blob"), Content: github.String(string(desiredPart)), Mode: github.String("100644")})
+	entries = append(entries, &github.TreeEntry{Path: github.String(strings.TrimPrefix(prodCliReleaseVerPath, "/")), Type: github.String("blob"), Content: github.String(string(desiredPart)), Mode: github.String("100644")})
 	tree, _, err := client.Git.CreateTree(ctx,forkedRepoOwner, repoName, *ref.Object.SHA, entries)
 	if err != nil {
 		 return fmt.Errorf("error creating tree %s", err)
@@ -256,3 +255,4 @@ func updateReleaseVersion()(error){
 	return nil
 
 }
+
