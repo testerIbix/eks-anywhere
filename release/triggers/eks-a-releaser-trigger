@@ -1,8 +1,8 @@
-dev/bundle-number: 69
-dev/CLI_MAX_VERSION: v0.0.9
-dev/CLI_MIN_VERSION: v0.0.9
-prod/CLI_MAX_VERSION: v0.0.0
-prod/CLI_MIN_VERSION: v0.0.0 
-prod/bundle-number: 70
-RELEASE_NUMBER: 44
-RELEASE_VERSION: v0.01.9
+dev/bundle-number: 49
+dev/CLI_MAX_VERSION: v0.0.2
+dev/CLI_MIN_VERSION: v0.0.2
+prod/CLI_MAX_VERSION: v1.0.0
+prod/CLI_MIN_VERSION: v1.0.0 
+prod/bundle-number: 71
+RELEASE_NUMBER: 24
+RELEASE_VERSION: v0.11.9
