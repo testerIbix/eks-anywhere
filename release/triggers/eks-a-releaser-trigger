@@ -1,7 +1,6 @@
 release: release-19
 bundle-number: 19
-CLI_MAX_VERSION: v0.19.1
-CLI_MIN_VERSION: v0.19.1
+Version: v0.19.1
 
 # the first line updates the release branch references
 # bundle number & release number share the same value
