@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	repoNameB   = "eks-anywhere-prow-jobs"
+	prowRepoName   = "eks-anywhere-prow-jobs"
 	filePathOne = "/jobs/aws/eks-anywhere-build-tooling/eks-anywhere-attribution-periodics-release-0.19.yaml"
 	//filePathTwo  = "/jobs/aws/eks-anywhere-build-tooling/eks-anywhere-checksum-periodics-release-0.14.yaml"
 	filePathThree = "/templater/jobs/periodic/eks-anywhere-build-tooling/eks-anywhere-attribution-periodics-release-0.19.yaml"
@@ -47,7 +47,7 @@ func updateFileContentsOne() (string, error) {
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
-	fileContent, _, _, err := client.Repositories.GetContents(ctx, repoOwner, repoNameB, filePathOne, nil)
+	fileContent, _, _, err := client.Repositories.GetContents(ctx, AWSrepoOwner, prowRepoName, filePathOne, nil)
 	if err != nil {
 		fmt.Print(err)
 	}
@@ -204,7 +204,7 @@ func updateFileContentsTwo()(string, error){
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
-	fileContent, _, _, err := client.Repositories.GetContents(ctx, repoOwner, repoNameB, filePathThree, nil)
+	fileContent, _, _, err := client.Repositories.GetContents(ctx, AWSrepoOwner, prowRepoName, filePathThree, nil)
 	if err != nil {
 		fmt.Print(err)
 	}

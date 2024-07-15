@@ -66,7 +66,7 @@ func updateProdBundleNumber()(error){
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
 	// access trigger file and retrieve contents
-	triggerFileContentBundleNumber,_,_, err := client.Repositories.GetContents(ctx, forkedRepoOwner, repoName, triggerFilePath, nil)
+	triggerFileContentBundleNumber,_,_, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, repoName, triggerFilePath, nil)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
 	}
@@ -104,7 +104,7 @@ func updateProdBundleNumber()(error){
 
 	
 	// get latest commit sha
-	ref, _, err := client.Git.GetRef(ctx, forkedRepoOwner, repoName, "heads/eks-a-releaser")
+	ref, _, err := client.Git.GetRef(ctx, PersonalforkedRepoOwner, repoName, "heads/eks-a-releaser")
 	if err != nil {
 		return fmt.Errorf("error getting ref %s", err)
 	}
@@ -112,7 +112,7 @@ func updateProdBundleNumber()(error){
 
 	entries := []*github.TreeEntry{}
 	entries = append(entries, &github.TreeEntry{Path: github.String(strings.TrimPrefix(prodBundleNumPath, "/")), Type: github.String("blob"), Content: github.String(string(desiredPart)), Mode: github.String("100644")})
-	tree, _, err := client.Git.CreateTree(ctx,forkedRepoOwner, repoName, *ref.Object.SHA, entries)
+	tree, _, err := client.Git.CreateTree(ctx,PersonalforkedRepoOwner, repoName, *ref.Object.SHA, entries)
 	if err != nil {
 	 	return fmt.Errorf("error creating tree %s", err)
 	}
@@ -134,7 +134,7 @@ func updateProdBundleNumber()(error){
 	}
 
 	commitOP := &github.CreateCommitOptions{}
-	newCommit, _, err := client.Git.CreateCommit(ctx, forkedRepoOwner, repoName, commit, commitOP)
+	newCommit, _, err := client.Git.CreateCommit(ctx, PersonalforkedRepoOwner, repoName, commit, commitOP)
 	if err != nil {
 	return fmt.Errorf("creating commit %s", err)
 	}
@@ -143,14 +143,14 @@ func updateProdBundleNumber()(error){
 	// update branch reference
 	ref.Object.SHA = github.String(newCommitSHA)
 
-	_, _, err = client.Git.UpdateRef(ctx, forkedRepoOwner, repoName, ref, false)
+	_, _, err = client.Git.UpdateRef(ctx, PersonalforkedRepoOwner, repoName, ref, false)
 	if err != nil {
 	return fmt.Errorf("error updating ref %s", err)
 	}
 
 	// create pull request
     base := "main"
-    head := fmt.Sprintf("%s:%s", forkedRepoOwner, "eks-a-releaser")
+    head := fmt.Sprintf("%s:%s", PersonalforkedRepoOwner, "eks-a-releaser")
     title := "Update version files to stage production bundle release"
     body := "This pull request is responsible for updating the contents of 3 seperate files in order to trigger the production bundle release pipeline"
 
@@ -161,7 +161,7 @@ func updateProdBundleNumber()(error){
         Body:  &body,
     }
 
-	pr, _, err := client.PullRequests.Create(ctx, forkedRepoOwner, repoName, newPR)
+	pr, _, err := client.PullRequests.Create(ctx, PersonalforkedRepoOwner, repoName, newPR)
     if err != nil {
         return fmt.Errorf("error creating PR %s", err)
     }
@@ -179,7 +179,7 @@ func updateProdMaxVersion()(error){
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
 	// access trigger file and retrieve contents
-	triggerFileContentBundleNumber,_,_, err := client.Repositories.GetContents(ctx, forkedRepoOwner, repoName, triggerFilePath, nil)
+	triggerFileContentBundleNumber,_,_, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, repoName, triggerFilePath, nil)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
 	}
@@ -217,7 +217,7 @@ func updateProdMaxVersion()(error){
 
 	
 	// get latest commit sha
-	ref, _, err := client.Git.GetRef(ctx, forkedRepoOwner, repoName, "heads/eks-a-releaser")
+	ref, _, err := client.Git.GetRef(ctx, PersonalforkedRepoOwner, repoName, "heads/eks-a-releaser")
 	if err != nil {
 		return fmt.Errorf("error getting ref %s", err)
 	}
@@ -225,7 +225,7 @@ func updateProdMaxVersion()(error){
 
 	entries := []*github.TreeEntry{}
 	entries = append(entries, &github.TreeEntry{Path: github.String(strings.TrimPrefix(prodCliMaxVersionPath, "/")), Type: github.String("blob"), Content: github.String(string(desiredPart)), Mode: github.String("100644")})
-	tree, _, err := client.Git.CreateTree(ctx,forkedRepoOwner, repoName, *ref.Object.SHA, entries)
+	tree, _, err := client.Git.CreateTree(ctx,PersonalforkedRepoOwner, repoName, *ref.Object.SHA, entries)
 	if err != nil {
 	 	return fmt.Errorf("error creating tree %s", err)
 	}
@@ -247,7 +247,7 @@ func updateProdMaxVersion()(error){
 	}
 
 	commitOP := &github.CreateCommitOptions{}
-	newCommit, _, err := client.Git.CreateCommit(ctx, forkedRepoOwner, repoName, commit, commitOP)
+	newCommit, _, err := client.Git.CreateCommit(ctx, PersonalforkedRepoOwner, repoName, commit, commitOP)
 	if err != nil {
 	return fmt.Errorf("creating commit %s", err)
 	}
@@ -256,7 +256,7 @@ func updateProdMaxVersion()(error){
 	// update branch reference
 	ref.Object.SHA = github.String(newCommitSHA)
 
-	_, _, err = client.Git.UpdateRef(ctx, forkedRepoOwner, repoName, ref, false)
+	_, _, err = client.Git.UpdateRef(ctx, PersonalforkedRepoOwner, repoName, ref, false)
 	if err != nil {
 	return fmt.Errorf("error updating ref %s", err)
 	}
@@ -274,7 +274,7 @@ func updateProdMinVersion()(error){
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
 	// access trigger file and retrieve contents
-	triggerFileContentBundleNumber,_,_, err := client.Repositories.GetContents(ctx, forkedRepoOwner, repoName, triggerFilePath, nil)
+	triggerFileContentBundleNumber,_,_, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, repoName, triggerFilePath, nil)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
 	}
@@ -312,7 +312,7 @@ func updateProdMinVersion()(error){
 
 	
 	// get latest commit sha
-	ref, _, err := client.Git.GetRef(ctx, forkedRepoOwner, repoName, "heads/eks-a-releaser")
+	ref, _, err := client.Git.GetRef(ctx, PersonalforkedRepoOwner, repoName, "heads/eks-a-releaser")
 	if err != nil {
 		return fmt.Errorf("error getting ref %s", err)
 	}
@@ -320,7 +320,7 @@ func updateProdMinVersion()(error){
 
 	entries := []*github.TreeEntry{}
 	entries = append(entries, &github.TreeEntry{Path: github.String(strings.TrimPrefix(prodCliMinVersionPath, "/")), Type: github.String("blob"), Content: github.String(string(desiredPart)), Mode: github.String("100644")})
-	tree, _, err := client.Git.CreateTree(ctx,forkedRepoOwner, repoName, *ref.Object.SHA, entries)
+	tree, _, err := client.Git.CreateTree(ctx,PersonalforkedRepoOwner, repoName, *ref.Object.SHA, entries)
 	if err != nil {
 	 	return fmt.Errorf("error creating tree %s", err)
 	}
@@ -342,7 +342,7 @@ func updateProdMinVersion()(error){
 	}
 
 	commitOP := &github.CreateCommitOptions{}
-	newCommit, _, err := client.Git.CreateCommit(ctx, forkedRepoOwner, repoName, commit, commitOP)
+	newCommit, _, err := client.Git.CreateCommit(ctx, PersonalforkedRepoOwner, repoName, commit, commitOP)
 	if err != nil {
 	return fmt.Errorf("creating commit %s", err)
 	}
@@ -351,7 +351,7 @@ func updateProdMinVersion()(error){
 	// update branch reference
 	ref.Object.SHA = github.String(newCommitSHA)
 
-	_, _, err = client.Git.UpdateRef(ctx, forkedRepoOwner, repoName, ref, false)
+	_, _, err = client.Git.UpdateRef(ctx, PersonalforkedRepoOwner, repoName, ref, false)
 	if err != nil {
 	return fmt.Errorf("error updating ref %s", err)
 	}
