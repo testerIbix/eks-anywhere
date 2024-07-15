@@ -1,5 +1,4 @@
 version 0.2
-
 env:
   variables:
     GITHUB_ACCESS_TOKEN2: '{{ resolve:secretsmanager:GITHUB_ACCESS_TOKEN2:SecretString:GITHUB_ACCESS_TOKEN2 }}'
