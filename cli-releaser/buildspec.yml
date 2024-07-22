@@ -1,0 +1,23 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      golang: latest
+  pre_build:
+    commands:
+      - echo "Navigating to Go CLI directory"
+      - cd cli-releaser
+      - echo "Go Dependency Installation"
+      - go get ./...
+  build:
+    commands:
+      - echo "Go Build"
+      - go build -o eks-a-releaser-cli main.go
+  post_build:
+    commands:
+      - echo "Zipping Go Binary"
+      - zip eks-cli.zip eks-a-releaser-cli
+artifacts:
+  files:
+    - eks-cli.zip
