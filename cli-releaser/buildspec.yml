@@ -16,4 +16,4 @@ phases:
       - go build -o eks-a-releaser-cli ./eks-a-releaser/main.go
 artifacts:
   files:
-    - eks-a-releaser-cli
+    - cli-releaser/eks-a-releaser-cli
