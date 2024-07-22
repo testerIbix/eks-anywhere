@@ -13,7 +13,7 @@ phases:
   build:
     commands:
       - echo "Go Build"
-      - go build -o eks-a-releaser-cli main.go
+      - go build -o eks-a-releaser-cli ./eks-a-releaser/main.go
   post_build:
     commands:
       - echo "Zipping Go Binary"
