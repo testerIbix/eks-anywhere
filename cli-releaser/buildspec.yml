@@ -18,7 +18,7 @@ phases:
     commands:
       - echo "Zipping Go Binary"
       - zip eks-cli.zip eks-a-releaser-cli
-      - chmod 644 eks-cli.zip
+      - find $CODEBUILD_SRC_DIR -type f -name eks-cli.zip
 artifacts:
   files:
-    - eks-cli.zip
+    - cli-releaser/eks-cli.zip
