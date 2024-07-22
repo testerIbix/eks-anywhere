@@ -18,6 +18,7 @@ phases:
     commands:
       - echo "Zipping Go Binary"
       - zip eks-cli.zip eks-a-releaser-cli
+      - chmod 644 eks-cli.zip
 artifacts:
   files:
     - eks-cli.zip
