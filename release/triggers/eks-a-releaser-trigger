@@ -1,6 +1,6 @@
-release: release-0.20
+release: release-0.22
 number: 20
-version: v0.20.1
+version: v0.20.2
 
 # the first line updates the release branch references
 # bundle number & release number share the same value
