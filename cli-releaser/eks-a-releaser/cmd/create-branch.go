@@ -65,7 +65,7 @@ func createBoth()error{
 
 func createAnywhereBranch() error {
 	//create client
-	accessToken := os.Getenv("github-PAT")
+	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
@@ -136,7 +136,7 @@ func createAnywhereBranch() error {
 
 func createBuildToolingBranch() error {
 	//create client
-	accessToken := os.Getenv("github-PAT")
+	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
