@@ -9,5 +9,5 @@ phases:
   build:
     commands:
       - echo "Deploying Go CLI binary..."
-      - ./eks-a-releaser-cli create-branch
+      - ./eks-a-releaser-cli stage-bundle
       - # Run any additional deployment scripts or commands
