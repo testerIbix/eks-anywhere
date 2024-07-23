@@ -24,12 +24,7 @@ import (
 
 var (
 	prowRepoName = "eks-anywhere-prow-jobs"
-	prowFilePathOne  = "/jobs/aws/eks-anywhere-build-tooling/eks-anywhere-attribution-periodics-release-0.19.yaml"
-	prowFilePathThree = "/templater/jobs/periodic/eks-anywhere-build-tooling/eks-anywhere-attribution-periodics-release-0.19.yaml"
-
-	// update templater file, run make command to generate jobs files
-
-	// currently, both functions go in and directly update files, no call to make command
+	templaterFilePath = "/templater/jobs/periodic/eks-anywhere-build-tooling/eks-anywhere-attribution-periodics-release-0.19.yaml"
 )
 
 // upProwCmd represents the upProw command
@@ -40,79 +35,43 @@ var updateProwCmd = &cobra.Command{
 and usage of using your command.`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		runAllProw()
+		content := updateTemplaterFile()
+		fmt.Print(content)
 	},
 }
 
-func runAllProw(){
-	contentOne := updateProwFileOne()
-	fmt.Print(contentOne)
-	fmt.Println("--------------------------------------------")
-	contentFileThree := updateProwFileThree()
-	fmt.Print(contentFileThree)
-}
 
 
-func updateProwFileOne()string{
+func updateTemplaterFile()string{
+
+	// var holds latest release retrieved from trigger file
+	latestRelease := getLatestRelease()
 
 	//create client
 	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
+
 	// access file one and retrieve entire file contents
-	prowFileOneContent, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, prowRepoName, prowFilePathOne, nil)
+	templaterFileContent, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, prowRepoName, templaterFilePath, nil)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
 	}
-	content, err := prowFileOneContent.GetContent()
+
+	// var "content" holds entire string of templater file
+	content, err := templaterFileContent.GetContent()
 	if err != nil {
 		fmt.Print("second breakpoint", err)
 	}
-	// var "content" holds entire string of unedited file
+	
 
 
-
-	// isolate base_ref: line
-	baseRefSnippetStart := "base_ref: "
+	// update jobName field , isolate line 
+	nameSnippetStartIdentifier := "jobName: "
 	Firstlines := strings.Split(content, "\n")
 	startIndex := -1
 	endIndex := -1
-
-	for i, line := range Firstlines {
-		if strings.Contains(line, baseRefSnippetStart) {
-			startIndex = i
-			endIndex = i // Set endIndex to the same line as startIndex
-			break
-		}
-	}
-	if startIndex == -1 && endIndex == -1 {
-		//return fmt.Errorf("snippet not found", nil)  // Snippet not found
-		log.Panic("snippet not found...")
-	}
-
-	// holds string base_ref: release-0.00
-	baseRefLine := Firstlines[startIndex]
-
-	
-	splitBaseRefLine := strings.Split(baseRefLine, ": ")
-	// var holds release-0.00 portion
-	previousRelease := splitBaseRefLine[1]
-	// var holds latest release retrieved from trigger file
-	latestRelease := getLatestRelease()
-
-	// replace all instances of previousRelease with latestRelease ~ successfully updates base_ref & value fields
-	updatedBaseRefFileContent := strings.ReplaceAll(content, previousRelease, latestRelease)
-
-
-
-
-	// update - name: field 
-	// isolate line 
-	nameSnippetStartIdentifier := "- name: "
-	Firstlines = strings.Split(updatedBaseRefFileContent, "\n")
-	startIndex = -1
-	endIndex = -1
 
 	for i, line := range Firstlines {
 		if strings.Contains(line, nameSnippetStartIdentifier) {
@@ -129,117 +88,33 @@ func updateProwFileOne()string{
 	//holds string - name: eks-anywhere-attribution-periodic-release-0-19
 	nameLine := Firstlines[startIndex]
 
-	nameLineParts := strings.Split(nameLine, "release-")
+	jobNameLineParts := strings.Split(nameLine, "release-")
 
 	//holds string 0-19
-	nameLineReleasePortion := nameLineParts[1]
+	jobNameLineReleasePortion := jobNameLineParts[1]
 
 
-	// latestRelease var holds release-0.21 
+	// latestRelease var holds release-0.00 from trigger file
 	// we want to isolate the numerical portion 
-	// and convert it from 0.21 ---> 0-21
+	// and convert it from 0.00 ---> 0-00
 	splitLatestRelease := strings.Split(latestRelease, ".")
 	targetLatestReleaseValue := splitLatestRelease[1]
 
 	// var holds 0-21
 	convertedTargetLatestReleaseValue := "0-" + targetLatestReleaseValue
 
-	fullyUpdatedFileOne := strings.ReplaceAll(updatedBaseRefFileContent, nameLineReleasePortion, convertedTargetLatestReleaseValue)
-
-	return fullyUpdatedFileOne
-
-	/*
-	this function updates 3 seperate fields within the 1st prow-jobs file
-	- name:
-	- base_ref:
-	- value:
-	it updates name: and base_ref: on line 93 by replacing all instances of the previous release, with the latest one
-	additionally, it updates the name: field by isolating the numerical portion of the latest release and converting it to match the format of the file
-	it then uses the same method ReplaceAll() to update outdated instances 
-	*/
-
-	// Missing : add logic to create commit 
-}
-
-
-
-// func updateProwFileTwo()string{
-
-// 	// create client
-// 	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
-// 	ctx := context.Background()
-// 	client := github.NewClient(nil).WithAuthToken(accessToken)
+	firstUpdatedFile := strings.ReplaceAll(content, jobNameLineReleasePortion, convertedTargetLatestReleaseValue)
 
 	
-// 	// access file one and retrieve entire file contents
-// 	prowFileOneContent, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, prowRepoName, prowFilePathTwo, nil)
-// 	if err != nil {
-// 		fmt.Print("first breakpoint", err)
-// 	}
-// 	content, err := prowFileOneContent.GetContent()
-// 	if err != nil {
-// 		fmt.Print("second breakpoint", err)
-// 	}
 
-// 	return content
-// }
-
-
-
-func updateProwFileThree()string{
-
-	//create client
-	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
-	ctx := context.Background()
-	client := github.NewClient(nil).WithAuthToken(accessToken)
-
-	// access file one and retrieve entire file contents
-	prowFileOneContent, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, prowRepoName, prowFilePathThree, nil)
-	if err != nil {
-		fmt.Print("first breakpoint", err)
-	}
-	content, err := prowFileOneContent.GetContent()
-	if err != nil {
-		fmt.Print("second breakpoint", err)
-	}
-
-	baseRefSnippetStart := "value: "
-	Firstlines := strings.Split(content, "\n")
-	startIndex := -1
-	endIndex := -1
-
-	for i, line := range Firstlines {
-		if strings.Contains(line, baseRefSnippetStart) {
-			startIndex = i
-			endIndex = i // Set endIndex to the same line as startIndex
-			break
-		}
-	}
-	if startIndex == -1 && endIndex == -1 {
-		//return fmt.Errorf("snippet not found", nil)  // Snippet not found
-		log.Panic("snippet not found.....")
-	}
-
-	// holds string value: release-0.00
-	valueLine := Firstlines[startIndex]
-	splitValueLine := strings.Split(valueLine, ": ")
-	previousRelease := splitValueLine[1]
-	latestRelease := getLatestRelease()
-
-	updatedVerOneFile := strings.ReplaceAll(content, previousRelease, latestRelease)
-
-	
-	
-
-	// update - name: field 
-	// isolate line 
-	jobNameSnippetStartIdentifier := "jobName: "
-	Firstlines = strings.Split(updatedVerOneFile, "\n")
+	// update jobName field , isolate line 
+	nameSnippetStartIdentifier = "value: "
+	Firstlines = strings.Split(content, "\n")
 	startIndex = -1
 	endIndex = -1
 
 	for i, line := range Firstlines {
-		if strings.Contains(line, jobNameSnippetStartIdentifier) {
+		if strings.Contains(line, nameSnippetStartIdentifier) {
 			startIndex = i
 			endIndex = i // Set endIndex to the same line as startIndex
 			break
@@ -247,40 +122,28 @@ func updateProwFileThree()string{
 	}
 	if startIndex == -1 && endIndex == -1 {
 		//return fmt.Errorf("snippet not found", nil)  // Snippet not found
-		log.Panic("ERROR : snippet not found...")
+		log.Panic("snippet not found...")
 	}
 
-	//holds string - jobName: eks-anywhere-attribution-periodic-release-0-19
-	nameLine := Firstlines[startIndex]
+	//holds value: release-0.00 from templater file
+	nameLine = Firstlines[startIndex]
 
-	nameLineParts := strings.Split(nameLine, "release-")
 
-	//holds string 0-19
-	nameLineReleasePortion := nameLineParts[1]
+	// isolates release-0.00 portion from templater file
+	valueLine := strings.Split(nameLine, ": ")
+	valueLinePortion := valueLine[1]
 
-	// latestRelease var holds release-0.21 
-	// we want to isolate the numerical portion 
-	// and convert it from 0.21 ---> 0-21
-	splitLatestRelease := strings.Split(latestRelease, ".")
-	targetLatestReleaseValue := splitLatestRelease[1]
 
-	// var holds 0-21
-	convertedTargetLatestReleaseValue := "0-" + targetLatestReleaseValue
+	// replaces all instances of "release-0.00" with var valueLinePortion, updating both value: line and baseRef: line
+	secondUpdatedFile := strings.ReplaceAll(firstUpdatedFile, valueLinePortion, latestRelease)
 
-	fullyUpdatedFileOne := strings.ReplaceAll(updatedVerOneFile, nameLineReleasePortion, convertedTargetLatestReleaseValue)
+	return secondUpdatedFile
 
-	return fullyUpdatedFileOne
+	// all required fields successfully get updated 
 
-	/*
-	this function updates 3 seperate fields within the 3rd prow-jobs file
-	- jobName:
-	- baseRef:
-	- value:
-	it updates name: and baseRef: by replacing all instances of the previous release, with the latest one
-	additionally, it updates the jobName: field by isolating the numerical portion of the latest release and converting it to match the format of the file
-	it then uses the same method ReplaceAll() to update outdated instances 
-	*/
-
-	// Missing : add logic to create commit 
+	// missing : create commit and PR with changes 
+	// as well as speak with abhay surrounding changing file names
+	// github api does not provide a direct way to update file names
+	// proposed solutions online state to delete file and create new one with new name but prob not ideal
+	// other solutions suggest using UpdateFile method from github api 
 }
-

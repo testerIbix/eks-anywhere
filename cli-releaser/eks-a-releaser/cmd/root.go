@@ -51,4 +51,6 @@ func init() {
 	rootCmd.AddCommand(prodCliCmd)
 	rootCmd.AddCommand(createBranchCmd)
 	rootCmd.AddCommand(updateHomebrewCmd)
+	rootCmd.AddCommand(createReleaseCmd)
+	rootCmd.AddCommand(tagTestCmd)
 }
