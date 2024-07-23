@@ -1,5 +1,5 @@
 release: release-0.22
-number: 20
+number: 21
 version: v0.20.2
 
 # the first line updates the release branch references
