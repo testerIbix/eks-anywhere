@@ -16,7 +16,3 @@ phases:
       - echo "Deploying Go CLI binary..."
       - ./go-cli-binary create-branch
       - # Run any additional deployment scripts or commands
-
-artifacts:
-  files:
-    - '**/*'
