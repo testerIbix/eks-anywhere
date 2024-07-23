@@ -1,0 +1,13 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "Installing dependencies..."
+      - # Install any required dependencies for deployment
+
+  build:
+    commands:
+      - echo "Deploying Go CLI binary..."
+      - ./eks-a-releaser-cli create-branch
+      - # Run any additional deployment scripts or commands
