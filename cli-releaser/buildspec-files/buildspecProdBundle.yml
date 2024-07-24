@@ -17,4 +17,3 @@ phases:
     commands:
       - echo "Deploying Go CLI binary..."
       - ./eks-a-releaser-cli prod-bundle
-      - ./eks-a-releaser-cli prod-cli
