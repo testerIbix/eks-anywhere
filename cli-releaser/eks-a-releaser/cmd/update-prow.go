@@ -5,16 +5,29 @@ package cmd
 
 /*
 	what does this command do?
-	this command is responsible for updating 4 seperate files within the prow-jobs repo
-	Creates a pull request targetting "main", containing the 4 commits
 
-	7/18/24 : function incomplete, further discussion required
+	currently :
+	updateTemplaterFile() - accessess the templater file from the provided path on "eks-a-releaser" branch
+	retrieves content from templater file
+	updates file content to point to new release, stores updated file content in a variable
+	creates new file path/name by altering previous file & updating "release-0.00.yaml" portion
+
+	deletes previously exisiting file using previous file path/name ~ templaterFilePath
+	creates a new file using the updated file path/name and the updated file content
+
+	commits changes to prow-jobs repo "eks-a-releaser" branch
+
+	raises PR with commits targeting "main"
 */
-
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
@@ -23,8 +36,7 @@ import (
 )
 
 var (
-	prowRepoName = "eks-anywhere-prow-jobs"
-	templaterFilePath = "/templater/jobs/periodic/eks-anywhere-build-tooling/eks-anywhere-attribution-periodics-release-0.19.yaml"
+	prowRepoName      = "eks-anywhere-prow-jobs"
 )
 
 // upProwCmd represents the upProw command
@@ -35,26 +47,35 @@ var updateProwCmd = &cobra.Command{
 and usage of using your command.`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		content := updateTemplaterFile()
-		fmt.Print(content)
+		updateTemplaterFile()
 	},
 }
 
 
-
-func updateTemplaterFile()string{
-
+func updateTemplaterFile() {
 	// var holds latest release retrieved from trigger file
 	latestRelease := getLatestRelease()
 
-	//create client
+	// var holds latest file name
+	latestFileName, err := FetchFileName(PersonalforkedRepoOwner, prowRepoName, "templater/jobs/periodic/eks-anywhere-build-tooling", "eks-a-releaser")
+	if err != nil {
+		fmt.Print("error fetching file names", err)
+	}
+
+	// var holds updated full file path
+	templaterFilePath := "/templater/jobs/periodic/eks-anywhere-build-tooling/" + latestFileName
+
+	// create client
 	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
+	opts := &github.RepositoryContentGetOptions{
+		Ref: "eks-a-releaser", // Updated to target eks-a-releaser branch
+	}
 
-	// access file one and retrieve entire file contents
-	templaterFileContent, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, prowRepoName, templaterFilePath, nil)
+	// access templater file on eks-a-releaser branch and retrieve entire file contents
+	templaterFileContent, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, prowRepoName, templaterFilePath, opts)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
 	}
@@ -64,10 +85,8 @@ func updateTemplaterFile()string{
 	if err != nil {
 		fmt.Print("second breakpoint", err)
 	}
-	
 
-
-	// update jobName field , isolate line 
+	// update jobName field, isolate line
 	nameSnippetStartIdentifier := "jobName: "
 	Firstlines := strings.Split(content, "\n")
 	startIndex := -1
@@ -81,21 +100,20 @@ func updateTemplaterFile()string{
 		}
 	}
 	if startIndex == -1 && endIndex == -1 {
-		//return fmt.Errorf("snippet not found", nil)  // Snippet not found
+		// return fmt.Errorf("snippet not found", nil)  // Snippet not found
 		log.Panic("snippet not found...")
 	}
 
-	//holds string - name: eks-anywhere-attribution-periodic-release-0-19
+	// holds string - name: eks-anywhere-attribution-periodic-release-0-19
 	nameLine := Firstlines[startIndex]
 
 	jobNameLineParts := strings.Split(nameLine, "release-")
 
-	//holds string 0-19
+	// holds string 0-19
 	jobNameLineReleasePortion := jobNameLineParts[1]
 
-
 	// latestRelease var holds release-0.00 from trigger file
-	// we want to isolate the numerical portion 
+	// we want to isolate the numerical portion
 	// and convert it from 0.00 ---> 0-00
 	splitLatestRelease := strings.Split(latestRelease, ".")
 	targetLatestReleaseValue := splitLatestRelease[1]
@@ -105,9 +123,7 @@ func updateTemplaterFile()string{
 
 	firstUpdatedFile := strings.ReplaceAll(content, jobNameLineReleasePortion, convertedTargetLatestReleaseValue)
 
-	
-
-	// update jobName field , isolate line 
+	// update jobName field, isolate line
 	nameSnippetStartIdentifier = "value: "
 	Firstlines = strings.Split(content, "\n")
 	startIndex = -1
@@ -121,29 +137,171 @@ func updateTemplaterFile()string{
 		}
 	}
 	if startIndex == -1 && endIndex == -1 {
-		//return fmt.Errorf("snippet not found", nil)  // Snippet not found
+		// return fmt.Errorf("snippet not found", nil)  // Snippet not found
 		log.Panic("snippet not found...")
 	}
 
-	//holds value: release-0.00 from templater file
+	// holds value: release-0.00 from templater file
 	nameLine = Firstlines[startIndex]
-
 
 	// isolates release-0.00 portion from templater file
 	valueLine := strings.Split(nameLine, ": ")
 	valueLinePortion := valueLine[1]
 
-
 	// replaces all instances of "release-0.00" with var valueLinePortion, updating both value: line and baseRef: line
-	secondUpdatedFile := strings.ReplaceAll(firstUpdatedFile, valueLinePortion, latestRelease)
+	secondUpdatedFileContent := strings.ReplaceAll(firstUpdatedFile, valueLinePortion, latestRelease)
 
-	return secondUpdatedFile
 
-	// all required fields successfully get updated 
+	// all required fields successfully get updated
 
-	// missing : create commit and PR with changes 
-	// as well as speak with abhay surrounding changing file names
-	// github api does not provide a direct way to update file names
-	// proposed solutions online state to delete file and create new one with new name but prob not ideal
-	// other solutions suggest using UpdateFile method from github api 
+
+	// variable holds temp file path, removing the leading "/"
+	prevFileName := "templater/jobs/periodic/eks-anywhere-build-tooling/" + latestFileName
+
+	parts := strings.Split(prevFileName, "periodics-")
+
+	// index 1 : release-0.19.yaml
+	// index 0 : /templater/jobs/periodic/eks-anywhere-build-tooling/eks-anywhere-attribution-
+	fmt.Print(parts[0])
+
+	newFilePathString := parts[0] + "periodics-" + latestRelease + ".yaml"
+
+	// by the end of this function we have : the updated content for the file ~ in a string variable : secondUpdatedFile
+	// the updated file path including the file name for the new file that needs to be created ~ in a string variable : newString
+
+
+	err = deleteFile(ctx, client, PersonalforkedRepoOwner, prowRepoName, prevFileName, "eks-a-releaser")
+	if err != nil {
+		fmt.Printf("error:  %s", err)
+	}
+
+	err = createFile(PersonalforkedRepoOwner, prowRepoName, newFilePathString, secondUpdatedFileContent)
+	if err != nil {
+		fmt.Printf("error:  %s", err)
+	}
+
+	err = createPullRequest(ctx, client, "main", "eks-a-releaser", "Update Templater File", "This PR updates the templater file for the new release.")
+	if err != nil {
+		fmt.Printf("error:  %s", err)
+	}
 }
+
+func createFile(repoOwner, repoName, filePath, content string) error {
+	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/contents/%s", repoOwner, repoName, filePath)
+
+	encodedContent := base64.StdEncoding.EncodeToString([]byte(content))
+	data := map[string]interface{}{
+		"message": "Create file",
+		"content": encodedContent,
+		"branch":  "eks-a-releaser", // Ensure the changes are made on the eks-a-releaser branch
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Authorization", "token "+accessToken)
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := ioutil.ReadAll(resp.Body)
+		return fmt.Errorf("failed to create file: %s", body)
+	}
+
+	return nil
+}
+
+func deleteFile(ctx context.Context, client *github.Client, repoOwner, repoName, filePath, branch string) error {
+	opts := &github.RepositoryContentGetOptions{Ref: branch}
+
+	// Get the file information to retrieve the SHA
+	fileContent, _, _, err := client.Repositories.GetContents(ctx, repoOwner, repoName, filePath, opts)
+	if err != nil {
+		return fmt.Errorf("failed to get file information: %v", err)
+	}
+
+	sha := fileContent.GetSHA()
+	message := "Delete outdated file"
+	options := &github.RepositoryContentFileOptions{
+		Message: &message,
+		SHA:     &sha,
+		Branch:  &branch,
+	}
+
+	_, _, err = client.Repositories.DeleteFile(ctx, repoOwner, repoName, filePath, options)
+	if err != nil {
+		return fmt.Errorf("failed to delete file: %v", err)
+	}
+
+	return nil
+}
+
+func createPullRequest(ctx context.Context, client *github.Client, baseBranch, headBranch, title, body string) error {
+	newPR := &github.NewPullRequest{
+		Title: github.String(title),
+		Head:  github.String(headBranch),
+		Base:  github.String(baseBranch),
+		Body:  github.String(body),
+	}
+
+	pr, _, err := client.PullRequests.Create(ctx, PersonalforkedRepoOwner, prowRepoName, newPR)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Created PR: %s\n", pr.GetHTMLURL())
+	return nil
+}
+
+
+
+
+func FetchFileName(owner, repo, dir, branch string)(string, error){
+	// create client
+	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
+	ctx := context.Background()
+	client := github.NewClient(nil).WithAuthToken(accessToken)
+
+	opts := &github.RepositoryContentGetOptions{
+		Ref: branch,
+	}
+
+	_, dirContents, _, err := client.Repositories.GetContents(ctx, owner, repo, dir, opts)
+	if err != nil {
+		return "error fetching files from repo", err
+	}
+
+
+
+	// extract file names
+	var fileNames []string
+	for _, file := range dirContents {
+		fileNames = append(fileNames, *file.Name)
+	}
+
+
+	// filters to return "release" file name only
+	for _, name := range fileNames{
+		if strings.Contains(name, "release-"){
+			return name, nil
+		}
+	}
+
+	return "file not found", nil
+}
+
+
+

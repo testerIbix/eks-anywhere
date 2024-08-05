@@ -9,12 +9,12 @@ package cmd
 	this command is responsible for creating a release tag with the commit hash that triggered the prod CLI release
 
 	func retrieveLatestProdCLIHash() - retrieves the latest commit hash from the prod release version file, "eks-a-releaser" branch
-	func createTag() - takes in commit hash and creates a tag
-	func createGitHubRelease() - creates a release on GitHub using the tag created in createTag()
-	func runBothTag() - runs both createTag() and createGitHubRelease()
 
-	7/19/24 : tag and release are both successfully created, however an error gets logged
-	error is thrown due to the fact that a new release gets created with a tag name that already exists in the repo
+	func createTag() - takes in commit hash and creates a tag
+
+	func createGitHubRelease() - creates a release on GitHub using the tag created in createTag()
+
+	func runBothTag() - runs both createTag() and createGitHubRelease()
 */
 
 import (
@@ -64,14 +64,13 @@ func runBothTag(){
 // creates tag using retrieved commit hash
 func createTag(commitHash string) (*github.RepositoryRelease, error){
 	
-
 	// retrieve tag name "v0.0.00" from trigger file, "eks-a-releaser" branch 
 	version := retrieveLatestVersion()
 
-	
 	//create client
 	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
 	ctx := context.Background()
+
 	// Create a new GitHub client instance with the token type set to "Bearer"
 	ts := oauth2.StaticTokenSource(&oauth2.Token{
     	AccessToken: accessToken,
@@ -80,8 +79,6 @@ func createTag(commitHash string) (*github.RepositoryRelease, error){
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
 
-
-	
 	releaseName := version
 	releaseDesc := "EKS-Anywhere " + version + " release"
 	commitSHA := commitHash
@@ -104,9 +101,7 @@ func createTag(commitHash string) (*github.RepositoryRelease, error){
 
 
 func retrieveLatestProdCLIHash() string {
-	// Implement logic to retrieve the latest commit hash that triggered prod cli release
-	//from the "eks-a-releaser" branch
-
+	
 	//create client
 	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
 	ctx := context.Background()
@@ -134,8 +129,7 @@ func retrieveLatestProdCLIHash() string {
 
 
 func createGitHubRelease(releaseTag *github.RepositoryRelease) (*github.RepositoryRelease, error){
-	// Implement logic to create a release on GitHub using the tag created in createTag()
-
+	
 	version := retrieveLatestVersion() // "v0.0.00"
 
 	//create client
@@ -143,14 +137,11 @@ func createGitHubRelease(releaseTag *github.RepositoryRelease) (*github.Reposito
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
-
 	release, _, err := client.Repositories.GetReleaseByTag(ctx, PersonalforkedRepoOwner, repoName, version)
     if err == nil {
-        // Release with the given tag name already exists
         fmt.Printf("Release %s already exists!\n", version)
         return release, nil
     }
-
 
 	release = &github.RepositoryRelease{
         TagName: releaseTag.TagName,
@@ -164,7 +155,6 @@ func createGitHubRelease(releaseTag *github.RepositoryRelease) (*github.Reposito
     }
 
     return rel, nil
-	
 }
 
 

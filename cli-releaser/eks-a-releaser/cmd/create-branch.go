@@ -7,12 +7,11 @@ package cmd
 	what does this command do?
 	this command is responsible for accessing the trigger file and creating a new release branch in 2 repos,
 	the trigger file within the "eks-a-releaser" branch is accessed and its "release: release-0.00" contents are extracted
-	next, a new branch is created using the extracted release value within the eks-a and build-tooling repo
+	next, a new branch is created using the extracted release value within the eks-anywhere and build-tooling repo
 
 	Release Process Timeline :
-	(1) User first updates trigger file contents within "eks-a-releaser" branch
-	(2) User commits changes and raises a PR to be merged into "main" branch
-	(3) Codebuild/Pipeline will be triggered once this specific PR is created
+	(1) User first updates trigger file contents within "eks-a-releaser" branch ~ personal fork of eks-anywhere
+	(2) Codebuild/Pipeline pulls the content to update/create branch from the trigger file
 	(4) This command will be the first one to be executed and the new release branch will be created
 	Moving forward from this point on, all further changes will continue to be committed into the "eks-a-releaser" branch but raised PR's will now target the newly created branch
 */
@@ -134,7 +133,11 @@ func createAnywhereBranch() error {
 }
 
 
+
+
+// build tooling branch created is based off "main"
 func createBuildToolingBranch() error {
+	
 	//create client
 	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
 	ctx := context.Background()
@@ -179,7 +182,7 @@ func createBuildToolingBranch() error {
 	newBranch := desiredPart
 	ref := "refs/heads/" + newBranch
 	baseRef := "main" //newly created release branch will be based from this branch
-	// future ref : once intergrated into aws repo, baseRef var can := desiredPart - 1 , our new release-0.00 value minus one to be based on previous release branch
+	
 
 	// Get the reference for the base branch
 	baseRefObj, _, err := client.Git.GetRef(ctx, PersonalforkedRepoOwner, buildToolingRepoName, "heads/"+baseRef)

@@ -5,7 +5,7 @@ package cmd
 
 /*
 	what does this command do?
-	this command is responsible for updating the brew release version file
+	this command is responsible for updating the homebrew release version file
 
 	retrievesLatestVersion() - accesses trigger file in "eks-a-releaser" branch
 	returns version: v0.0.0 field value
@@ -70,23 +70,23 @@ func updateHomebrew()error{
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
 	opts := &github.RepositoryContentGetOptions{
-		Ref: "eks-a-releaser", // Replace with the desired branch name
+		Ref: "eks-a-releaser", 
 	}
 
-	// access trigger file and retrieve version value
+	// access trigger file
 	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, repoName, homebrewPath, opts)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
 	}
+
 	// holds content of homebrew cli version file
 	content, err := triggerFileContentBundleNumber.GetContent()
 	if err != nil {
 		fmt.Print("second breakpoint", err)
 	}
 
+	// update instances of previous release with new
 	updatedFile := strings.ReplaceAll(content, content, latestVersionValue)
-
-
 
 
 	// get latest commit sha
@@ -141,7 +141,6 @@ func updateHomebrew()error{
 
 
 // retrieves latest version from trigger file, eks-a-releaser branch
-// e.g v0.0.0
 func retrieveLatestVersion()string{
 
 	// create client 
@@ -150,10 +149,10 @@ func retrieveLatestVersion()string{
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
 	opts := &github.RepositoryContentGetOptions{
-		Ref: "eks-a-releaser", // Replace with the desired branch name
+		Ref: "eks-a-releaser", 
 	}
 
-	// access trigger file and retrieve version value
+	// access trigger file
 	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, repoName, triggerFilePath, opts)
 	if err != nil {
 		fmt.Print("first breakpoint", err)

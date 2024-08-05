@@ -63,10 +63,10 @@ func updateReleaseNumber() error {
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
 	opts := &github.RepositoryContentGetOptions{
-		Ref: "eks-a-releaser", // Replace with the desired branch name
+		Ref: "eks-a-releaser", 
 	}
 
-	// access trigger file and retrieve contents
+	// access trigger file
 	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, repoName, triggerFilePath, opts)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
@@ -85,12 +85,11 @@ func updateReleaseNumber() error {
 	for i, line := range lines {
 		if strings.Contains(line, snippetStartIdentifierB) {
 			startIndex = i
-			endIndex = i // Set endIndex to the same line as startIndex
+			endIndex = i 
 			break
 		}
 	}
 	if startIndex == -1 && endIndex == -1 {
-		//return fmt.Errorf("snippet not found", nil)  // Snippet not found
 		log.Panic("snippet not found...")
 	}
 
@@ -181,10 +180,10 @@ func updateReleaseVersion() error {
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
 	opts := &github.RepositoryContentGetOptions{
-		Ref: "eks-a-releaser", // Replace with the desired branch name
+		Ref: "eks-a-releaser", 
 	}
 
-	// access trigger file and retrieve contents
+	// access trigger 
 	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, repoName, triggerFilePath, opts)
 	if err != nil {
 		fmt.Print("first breakpoint", err)

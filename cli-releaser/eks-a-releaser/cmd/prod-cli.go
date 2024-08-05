@@ -8,7 +8,7 @@ package cmd
 
 	this command is responsible for accessing the trigger file from the "eks-a-releaser" branch, and extracting the number and version values
 	3 distinct functions have been created, 2 out of the 3 update a file and commit the changes to the "eks-a-releaser" branch
-	Additionally the first update function handles the logic of creating the PR targetting the new release branch
+	Additionally the first update function handles the logic of creating the PR
 
 	the last function is responsible for running the other 2
 */
@@ -57,6 +57,7 @@ func updateAllProdCliFiles() {
 
 // updates release number + creates PR
 func updateProdReleaseNumber() error {
+
 	//create client
 	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
 	ctx := context.Background()
@@ -65,7 +66,8 @@ func updateProdReleaseNumber() error {
 	opts := &github.RepositoryContentGetOptions{
 		Ref: "eks-a-releaser", // Replace with the desired branch name
 	}
-	// access trigger file and retrieve contents
+
+	// access trigger file 
 	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, repoName, triggerFilePath, opts)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
@@ -84,12 +86,11 @@ func updateProdReleaseNumber() error {
 	for i, line := range lines {
 		if strings.Contains(line, snippetStartIdentifierB) {
 			startIndex = i
-			endIndex = i // Set endIndex to the same line as startIndex
+			endIndex = i 
 			break
 		}
 	}
 	if startIndex == -1 && endIndex == -1 {
-		//return fmt.Errorf("snippet not found", nil)  // Snippet not found
 		log.Panic("snippet not found...")
 	}
 
@@ -147,8 +148,10 @@ func updateProdReleaseNumber() error {
 		return fmt.Errorf("error updating ref %s", err)
 	}
 
-	latestRelease := getLatestRelease()
+
+
 	// create pull request
+	latestRelease := getLatestRelease()
 	base := latestRelease
 	head := fmt.Sprintf("%s:%s", PersonalforkedRepoOwner, "eks-a-releaser")
 	title := "Update version files to stage prod cli release"
@@ -181,13 +184,15 @@ func updateProdReleaseVersion() error {
 
 
 	opts := &github.RepositoryContentGetOptions{
-		Ref: "eks-a-releaser", // Replace with the desired branch name
+		Ref: "eks-a-releaser", 
 	}
-	// access trigger file and retrieve contents
+
+	// access trigger file 
 	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, repoName, triggerFilePath, opts)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
 	}
+	
 	content, err := triggerFileContentBundleNumber.GetContent()
 	if err != nil {
 		fmt.Print("second breakpoint", err)
