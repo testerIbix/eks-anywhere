@@ -6,7 +6,9 @@ package cmd
 /*
 	what does this command do?
 	this command is responsible for accessing the trigger file from the "eks-a-releaser" branch, and extracting the number and version values
+
 	5 seperate functions have been created in total, 3 out of the 5 are responsible for updating the three distinct files and committing changes to "eks-a-releaser" branch
+	
 	1 function is responsible for creating a PR containing the 3 commits, the last function runs all 4 of the other funcs
 
 	The pull request is created using the 3 commits from "eks-a-releaser" branch and is intended to be merged into latest release branch
@@ -78,7 +80,7 @@ func updateBundleNum() error {
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
 	opts := &github.RepositoryContentGetOptions{
-		Ref: "eks-a-releaser", // Replace with the desired branch name
+		Ref: "eks-a-releaser", 
 	}
 
 	// access trigger file and retrieve contents

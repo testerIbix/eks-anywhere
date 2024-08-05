@@ -52,5 +52,5 @@ func init() {
 	rootCmd.AddCommand(createBranchCmd)
 	rootCmd.AddCommand(updateHomebrewCmd)
 	rootCmd.AddCommand(createReleaseCmd)
-	rootCmd.AddCommand(tagTestCmd)
+	rootCmd.AddCommand(prowMakeCmdCmd)
 }

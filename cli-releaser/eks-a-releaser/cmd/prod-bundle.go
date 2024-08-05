@@ -5,9 +5,10 @@ package cmd
 
 /*
 	what does this command do?
+
 	this command is responsible for accessing the trigger file from the "eks-a-releaser" branch, and extracting the number and version values
 	4 distinct functions have been created, 3 out of the 4 update a file and commit the changes to the "eks-a-releaser" branch
-	Additionally, the first update function handles the logic of creating the PR targgetting the latest release branch
+	Additionally, the first update function handles the logic of creating the PR
 
 	the last function is responsible for running the 3 other functions
 */
@@ -65,6 +66,7 @@ func updateAllProdBundleFiles() error {
 }
 
 func updateProdBundleNumber() error {
+
 	//create client
 	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
 	ctx := context.Background()
@@ -72,9 +74,9 @@ func updateProdBundleNumber() error {
 
 
 	opts := &github.RepositoryContentGetOptions{
-		Ref: "eks-a-releaser", // Replace with the desired branch name
+		Ref: "eks-a-releaser", 
 	}
-	// access trigger file and retrieve contents
+	// access trigger file
 	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, repoName, triggerFilePath, opts)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
@@ -93,12 +95,11 @@ func updateProdBundleNumber() error {
 	for i, line := range lines {
 		if strings.Contains(line, snippetStartIdentifierB) {
 			startIndex = i
-			endIndex = i // Set endIndex to the same line as startIndex
+			endIndex = i 
 			break
 		}
 	}
 	if startIndex == -1 && endIndex == -1 {
-		//return fmt.Errorf("snippet not found", nil)  // Snippet not found
 		log.Panic("snippet not found...")
 	}
 
@@ -181,6 +182,7 @@ func updateProdBundleNumber() error {
 }
 
 func updateProdMaxVersion() error {
+
 	//create client
 	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
 	ctx := context.Background()
@@ -188,9 +190,10 @@ func updateProdMaxVersion() error {
 
 
 	opts := &github.RepositoryContentGetOptions{
-		Ref: "eks-a-releaser", // Replace with the desired branch name
+		Ref: "eks-a-releaser",
 	}
-	// access trigger file and retrieve contents
+
+	// access trigger file 
 	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, repoName, triggerFilePath, opts)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
@@ -209,12 +212,11 @@ func updateProdMaxVersion() error {
 	for i, line := range lines {
 		if strings.Contains(line, snippetStartIdentifierB) {
 			startIndex = i
-			endIndex = i // Set endIndex to the same line as startIndex
+			endIndex = i 
 			break
 		}
 	}
 	if startIndex == -1 && endIndex == -1 {
-		//return fmt.Errorf("snippet not found", nil)  // Snippet not found
 		log.Panic("snippet not found...")
 	}
 
@@ -277,15 +279,16 @@ func updateProdMaxVersion() error {
 }
 
 func updateProdMinVersion() error {
+
 	//create client
 	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
 	opts := &github.RepositoryContentGetOptions{
-		Ref: "eks-a-releaser", // Replace with the desired branch name
+		Ref: "eks-a-releaser", 
 	}
-	// access trigger file and retrieve contents
+	// access trigger file
 	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, repoName, triggerFilePath, opts)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
@@ -304,12 +307,11 @@ func updateProdMinVersion() error {
 	for i, line := range lines {
 		if strings.Contains(line, snippetStartIdentifierB) {
 			startIndex = i
-			endIndex = i // Set endIndex to the same line as startIndex
+			endIndex = i 
 			break
 		}
 	}
 	if startIndex == -1 && endIndex == -1 {
-		//return fmt.Errorf("snippet not found", nil)  // Snippet not found
 		log.Panic("snippet not found...")
 	}
 

@@ -4,8 +4,11 @@ package cmd
 	what does this command do?
 
 	this command is responsible for accessing and updating the Makefile with the latest release value
+
 	first, the trigger file within the "eks-a-releaser" branch is accessed and its release contents are retrieved e.g "release-0.00"
+
 	secondly, returnUpdatedFile() takes in the entire makefile content string and the retrieved release string from the trigger file, returning the updated makefile as a string
+
 	lastly, the updated makefile is committed to the "eks-a-releaser" branch, and a pull request is raised to be merged into the new release branch
 */
 
@@ -205,3 +208,4 @@ func returnUpdatedMakeFile(fileContent, newRelease string) string {
 	return strings.Join(updatedLines, "\n")
 
 }
+
