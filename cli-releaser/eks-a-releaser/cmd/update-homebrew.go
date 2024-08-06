@@ -7,21 +7,20 @@ package cmd
 	what does this command do?
 	this command is responsible for updating the homebrew release version file
 
-	retrievesLatestVersion() - accesses trigger file in "eks-a-releaser" branch
+	retrievesLatestVersion() - accesses trigger file in "eks-a-releaser" branch, bot fork / ibix16 fork
 	returns version: v0.0.0 field value
 
 	updateHomebrew() - retrieves the latest version value using the function above
-	accesses homebrew cli version file in "eks-a-releaser" branch
-	updates file contents with retrieved latest version value, commits changes to "eks-a-releaser" branch
+	accesses homebrew cli version file in "eks-a-releaser" branch, bot fork / ibix16 fork
+	updates file contents with retrieved latest version value, commits changes to "eks-a-releaser" branch, bot fork / ibix16 fork
 
-	PR is then raised from "eks-a-releaser" branch targgetting new release branch
+	PR is then raised from "eks-a-releaser" branch, bot fork / ibix16 fork, targgetting new release branch on upstream repo
 */
 
 import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/google/go-github/v62/github"
@@ -65,7 +64,11 @@ func updateHomebrew()error{
 
 
 	// create client 
-	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
+	secretName := "Secret"
+	accessToken, err := getSecretValue(secretName)
+	if err != nil {
+		fmt.Print("error getting secret", err)
+	}
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
@@ -74,7 +77,7 @@ func updateHomebrew()error{
 	}
 
 	// access trigger file
-	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, repoName, homebrewPath, opts)
+	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, botForkAccount, repoName, homebrewPath, opts)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
 	}
@@ -90,7 +93,7 @@ func updateHomebrew()error{
 
 
 	// get latest commit sha
-	ref, _, err := client.Git.GetRef(ctx, PersonalforkedRepoOwner, repoName, "heads/eks-a-releaser")
+	ref, _, err := client.Git.GetRef(ctx, botForkAccount, repoName, "heads/eks-a-releaser")
 	if err != nil {
 		return fmt.Errorf("error getting ref %s", err)
 	}
@@ -98,7 +101,7 @@ func updateHomebrew()error{
 
 	entries := []*github.TreeEntry{}
 	entries = append(entries, &github.TreeEntry{Path: github.String(strings.TrimPrefix(homebrewPath, "/")), Type: github.String("blob"), Content: github.String(string(updatedFile)), Mode: github.String("100644")})
-	tree, _, err := client.Git.CreateTree(ctx, PersonalforkedRepoOwner, repoName, *ref.Object.SHA, entries)
+	tree, _, err := client.Git.CreateTree(ctx, botForkAccount, repoName, *ref.Object.SHA, entries)
 	if err != nil {
 		return fmt.Errorf("error creating tree %s", err)
 	}
@@ -113,14 +116,14 @@ func updateHomebrew()error{
 	}
 
 	commit := &github.Commit{
-		Message: github.String("Update version value to point to new release"),
+		Message: github.String("Update brew-version value to point to new release"),
 		Tree:    &github.Tree{SHA: github.String(newTreeSHA)},
 		Author:  author,
 		Parents: []*github.Commit{{SHA: github.String(latestCommitSha)}},
 	}
 
 	commitOP := &github.CreateCommitOptions{}
-	newCommit, _, err := client.Git.CreateCommit(ctx, PersonalforkedRepoOwner, repoName, commit, commitOP)
+	newCommit, _, err := client.Git.CreateCommit(ctx, botForkAccount, repoName, commit, commitOP)
 	if err != nil {
 		return fmt.Errorf("creating commit %s", err)
 	}
@@ -129,7 +132,7 @@ func updateHomebrew()error{
 	// update branch reference
 	ref.Object.SHA = github.String(newCommitSHA)
 
-	_, _, err = client.Git.UpdateRef(ctx, PersonalforkedRepoOwner, repoName, ref, false)
+	_, _, err = client.Git.UpdateRef(ctx, botForkAccount, repoName, ref, false)
 	if err != nil {
 		return fmt.Errorf("error updating ref %s", err)
 	}
@@ -144,7 +147,11 @@ func updateHomebrew()error{
 func retrieveLatestVersion()string{
 
 	// create client 
-	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
+	secretName := "Secret"
+	accessToken, err := getSecretValue(secretName)
+	if err != nil {
+		fmt.Print("error getting secret", err)
+	}
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
@@ -153,7 +160,7 @@ func retrieveLatestVersion()string{
 	}
 
 	// access trigger file
-	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, repoName, triggerFilePath, opts)
+	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, botForkAccount, repoName, triggerFilePath, opts)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
 	}
@@ -197,13 +204,18 @@ func createPullRequestHomebrew()error{
 
 	latestReleaseValue := getLatestRelease()
 
-	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
+	secretName := "Secret"
+	accessToken, err := getSecretValue(secretName)
+	if err != nil {
+		fmt.Print("error getting secret", err)
+	}
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
 	// targgetting latest release branch
-	base := latestReleaseValue
-	head := fmt.Sprintf("%s:%s", PersonalforkedRepoOwner, "eks-a-releaser")
+	targetOwner := "testerIbix"
+	base := latestReleaseValue // branch PR will target
+	head := fmt.Sprintf("%s:%s", botForkAccount, "eks-a-releaser")
 	title := "Update homebrew cli version value to point to new release"
 	body := "This pull request is responsible for updating the contents of the home brew cli version file"
 
@@ -214,7 +226,7 @@ func createPullRequestHomebrew()error{
 		Body:  &body,
 	}
 
-	pr, _, err := client.PullRequests.Create(ctx, PersonalforkedRepoOwner, repoName, newPR)
+	pr, _, err := client.PullRequests.Create(ctx, targetOwner, repoName, newPR)
 	if err != nil {
 		return fmt.Errorf("error creating PR %s", err)
 	}

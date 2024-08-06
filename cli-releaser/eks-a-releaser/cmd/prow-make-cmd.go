@@ -4,12 +4,10 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"go/build"
-	"log"
-	"os"
+	"fmt"
 	"os/exec"
-	"path/filepath"
 
+	"github.com/aws/eks-anywhere-build-tooling/tools/version-tracker/pkg/util/command"
 	"github.com/spf13/cobra"
 )
 
@@ -27,28 +25,17 @@ and usage of using your command.`,
 
 
 // func that runs make command 
-// ibix16/eks-anywhere-prow-jobs/templater
-func runMakeCmd(){
+func runMakeCmd() error{
 
-	ctx := build.Default
+	projectRootFilePath := "github.com/testerIbix/eks-anywhere-prow-jobs/templater"
 
-	remoteRepo, err := ctx.Import("github.com/ibix16/eks-anywhere-prow-jobs", "", 0)
+	commandSequence := fmt.Sprintf("make -C %s prowjobs templater", projectRootFilePath)
+	makefileCmd := exec.Command("bash", "-c", commandSequence)
+	_, err := command.ExecCommand(makefileCmd)
 	if err != nil {
-		log.Fatalf("Error importing remote repo: %v",err)
-		os.Exit(1)
+		return fmt.Errorf("error running make command: %v", err)
 	}
 
-	templaterDir := filepath.Join(remoteRepo.Dir, "templater")
-
-
-	makeCmd := exec.Command("make", "prowjobs", "-C", templaterDir)
-	makeCmd.Stdout = os.Stdout
-	makeCmd.Stderr = os.Stderr
-
-	err = makeCmd.Run()
-	if err != nil {
-		log.Fatalf("Error running make command: %v", err)
-		os.Exit(1)
-	}
+	return nil
 
 }
