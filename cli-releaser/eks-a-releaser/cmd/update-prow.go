@@ -7,7 +7,7 @@ package cmd
 	what does this command do?
 
 	currently :
-	updateTemplaterFile() - accessess the templater file from the provided path on "eks-a-releaser" branch
+	updateTemplaterFile() - accessess the templater file from the provided path on "eks-a-releaser" branch, bot's fork
 	retrieves content from templater file
 	updates file content to point to new release, stores updated file content in a variable
 	creates new file path/name by altering previous file & updating "release-0.00.yaml" portion
@@ -15,9 +15,9 @@ package cmd
 	deletes previously exisiting file using previous file path/name ~ templaterFilePath
 	creates a new file using the updated file path/name and the updated file content
 
-	commits changes to prow-jobs repo "eks-a-releaser" branch
+	commits changes to prow-jobs repo "eks-a-releaser" branch, bot fork / ibix16 fork
 
-	raises PR with commits targeting "main"
+	raises PR with commits targeting upstream repo "main" branch
 */
 import (
 	"bytes"
@@ -28,7 +28,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/google/go-github/v62/github"
@@ -57,7 +56,7 @@ func updateTemplaterFile() {
 	latestRelease := getLatestRelease()
 
 	// var holds latest file name
-	latestFileName, err := FetchFileName(PersonalforkedRepoOwner, prowRepoName, "templater/jobs/periodic/eks-anywhere-build-tooling", "eks-a-releaser")
+	latestFileName, err := FetchFileName(botForkAccount, prowRepoName, "templater/jobs/periodic/eks-anywhere-build-tooling", "eks-a-releaser")
 	if err != nil {
 		fmt.Print("error fetching file names", err)
 	}
@@ -66,7 +65,11 @@ func updateTemplaterFile() {
 	templaterFilePath := "/templater/jobs/periodic/eks-anywhere-build-tooling/" + latestFileName
 
 	// create client
-	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
+	secretName := "Secret"
+	accessToken, err := getSecretValue(secretName)
+	if err != nil {
+		fmt.Print("error getting secret", err)
+	}
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
@@ -75,7 +78,7 @@ func updateTemplaterFile() {
 	}
 
 	// access templater file on eks-a-releaser branch and retrieve entire file contents
-	templaterFileContent, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, prowRepoName, templaterFilePath, opts)
+	templaterFileContent, _, _, err := client.Repositories.GetContents(ctx, botForkAccount, prowRepoName, templaterFilePath, opts)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
 	}
@@ -170,24 +173,28 @@ func updateTemplaterFile() {
 	// the updated file path including the file name for the new file that needs to be created ~ in a string variable : newString
 
 
-	err = deleteFile(ctx, client, PersonalforkedRepoOwner, prowRepoName, prevFileName, "eks-a-releaser")
+	err = deleteFile(ctx, client, botForkAccount, prowRepoName, prevFileName, "eks-a-releaser")
 	if err != nil {
 		fmt.Printf("error:  %s", err)
 	}
 
-	err = createFile(PersonalforkedRepoOwner, prowRepoName, newFilePathString, secondUpdatedFileContent)
+	err = createFile(botForkAccount, prowRepoName, newFilePathString, secondUpdatedFileContent)
 	if err != nil {
 		fmt.Printf("error:  %s", err)
 	}
 
-	err = createPullRequest(ctx, client, "main", "eks-a-releaser", "Update Templater File", "This PR updates the templater file for the new release.")
+	err = createPullRequest(ctx, client, "main", "Update Templater File", "This PR updates the templater file for the new release.")
 	if err != nil {
 		fmt.Printf("error:  %s", err)
 	}
 }
 
 func createFile(repoOwner, repoName, filePath, content string) error {
-	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
+	secretName := "Secret"
+	accessToken, err := getSecretValue(secretName)
+	if err != nil {
+		fmt.Print("error getting secret", err)
+	}
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/contents/%s", repoOwner, repoName, filePath)
 
 	encodedContent := base64.StdEncoding.EncodeToString([]byte(content))
@@ -249,15 +256,20 @@ func deleteFile(ctx context.Context, client *github.Client, repoOwner, repoName,
 	return nil
 }
 
-func createPullRequest(ctx context.Context, client *github.Client, baseBranch, headBranch, title, body string) error {
+func createPullRequest(ctx context.Context, client *github.Client, baseBranch, title, body string) error {
+
+	head := fmt.Sprintf("%s:%s", botForkAccount, "eks-a-releaser")
+
 	newPR := &github.NewPullRequest{
 		Title: github.String(title),
-		Head:  github.String(headBranch),
+		Head:  &head,
 		Base:  github.String(baseBranch),
 		Body:  github.String(body),
 	}
 
-	pr, _, err := client.PullRequests.Create(ctx, PersonalforkedRepoOwner, prowRepoName, newPR)
+	targetRepoOwner := "testerIbix"
+
+	pr, _, err := client.PullRequests.Create(ctx, targetRepoOwner, prowRepoName, newPR)
 	if err != nil {
 		return err
 	}
@@ -271,7 +283,11 @@ func createPullRequest(ctx context.Context, client *github.Client, baseBranch, h
 
 func FetchFileName(owner, repo, dir, branch string)(string, error){
 	// create client
-	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
+	secretName := "Secret"
+	accessToken, err := getSecretValue(secretName)
+	if err != nil {
+		fmt.Print("error getting secret", err)
+	}
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
@@ -305,3 +321,5 @@ func FetchFileName(owner, repo, dir, branch string)(string, error){
 
 
 
+// successfully deletes old file and creates new file on bot's fork, eks-a-releaser branch 
+// successfully creates a PR targetting upstream main repo with the new commits 
