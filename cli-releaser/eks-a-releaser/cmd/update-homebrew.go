@@ -55,18 +55,14 @@ func runAllHomebrew(){
 
 func updateHomebrew()error{
 	
-	// value we will use to update 
+	// fetch latest "v0.xx.xx" from env
 	latestVersionValue := os.Getenv("LATEST_VERSION")
 
-
 	// create client 
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	accessToken := os.Getenv("SECRET_PAT")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
+
 
 	opts := &github.RepositoryContentGetOptions{
 		Ref: "eks-a-releaser", // specific branch to check for homebrew file
@@ -142,18 +138,17 @@ func updateHomebrew()error{
 
 func createPullRequestHomebrew()error{
 
+	// fetch latest release "release-0.xx" from env
 	latestRelease := os.Getenv("LATEST_RELEASE")
 
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	// create client 
+	accessToken := os.Getenv("SECRET_PAT")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
-	// targgetting latest release branch
-	base := latestRelease // branch PR will target
+
+	
+	base := latestRelease // branch PR will be merged into
 	head := fmt.Sprintf("%s:%s", forkedRepoAccount, "eks-a-releaser")
 	title := "Update homebrew cli version value to point to new release"
 	body := "This pull request is responsible for updating the contents of the home brew cli version file"

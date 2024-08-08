@@ -60,15 +60,10 @@ func updateAllProdCliFiles() {
 // updates release number + creates PR
 func updateProdReleaseNumber() error {
 
-	//create client
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	// create client 
+	accessToken := os.Getenv("SECRET_PAT")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
-
 	releaseNumber := os.Getenv("RELEASE_NUMBER")
 
 	// get latest commit sha from branch "eks-a-releaser"
@@ -143,12 +138,8 @@ func updateProdReleaseNumber() error {
 // updates release version + commits
 func updateProdReleaseVersion() error {
 
-	//create client
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	// create client 
+	accessToken := os.Getenv("SECRET_PAT")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 

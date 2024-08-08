@@ -11,15 +11,11 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/google/go-github/v62/github"
 	"github.com/spf13/cobra"
 )
@@ -44,16 +40,13 @@ var updateMakefileCmd = &cobra.Command{
 
 func updateMakefile() error {
 
-	//create client
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	// create client 
+	accessToken := os.Getenv("SECRET_PAT")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
-	// string variable holding latest release
+
+	// string variable holding latest release from env "release-0.xx"
 	latestRelease := os.Getenv("LATEST_RELEASE")
 
 	opts := &github.RepositoryContentGetOptions{
@@ -163,39 +156,4 @@ func returnUpdatedMakeFile(fileContent, newRelease string) string {
 
 }
 
-
-// fetches value for key "PAT"
-func getSecretValue(secretName string)(string, error){
-
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion("us-west-2"),
-	)
-	if err != nil {
-
-		return "", fmt.Errorf("failed to load SDK config, %v", err)
-	}
-
-	svc := secretsmanager.NewFromConfig(cfg)
-
-	input := &secretsmanager.GetSecretValueInput{
-		SecretId: aws.String(secretName),
-	}
-
-	result, err := svc.GetSecretValue(context.TODO(), input)
-	if err != nil {
-		return "", fmt.Errorf("failed to retrieve secret value, %v", err)
-	}
-
-	secretString := *result.SecretString
-
-	var secretMap map[string]string
-	if err := json.Unmarshal([]byte(secretString), &secretMap); err == nil {
-		if value, exists := secretMap["PAT"]; exists{
-			return value, nil
-		}
-		return "", fmt.Errorf("PAT value not found in secret")
-	}
-
-	return secretString, nil
-}
 

@@ -59,14 +59,11 @@ func updateAllStageCliFiles() {
 
 func updateReleaseNumber() error {
 
-	//create client
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	// create client 
+	accessToken := os.Getenv("SECRET_PAT")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
+
 
 	// fetch release number from env
 	releaseNumber := os.Getenv("RELEASE_NUMBER")
@@ -146,15 +143,12 @@ func updateReleaseNumber() error {
 
 func updateReleaseVersion() error {
 
-	//create client
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	// create client 
+	accessToken := os.Getenv("SECRET_PAT")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
+	// fetch latest v0.xx.xx from env
 	latestVersion := os.Getenv("LATEST_VERSION")
 
 	// get latest commit sha from branch "eks-a-releaser"

@@ -73,11 +73,7 @@ func createTag(commitHash string) (*github.RepositoryRelease, error){
 	latestVersionValue := os.Getenv("LATEST_VERSION")
 
 	//create client
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	accessToken := os.Getenv("SECRET_PAT")
 	ctx := context.Background()
 
 	// Create a new GitHub client instance with the token type set to "Bearer"
@@ -112,11 +108,7 @@ func createTag(commitHash string) (*github.RepositoryRelease, error){
 func retrieveLatestProdCLIHash() string {
 	
 	//create client
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	accessToken := os.Getenv("SECRET_PAT")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
@@ -146,11 +138,7 @@ func createGitHubRelease(releaseTag *github.RepositoryRelease) (*github.Reposito
 	latestVersionValue := os.Getenv("LATEST_VERSION")
 
 	//create client
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	accessToken := os.Getenv("SECRET_PAT")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
@@ -180,11 +168,7 @@ func createReleasePR(release *github.RepositoryRelease) error {
 
 	//create client
 	latestRelease := os.Getenv("LATEST_RELEASE")
-	secretName := "Secret" 
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	accessToken := os.Getenv("SECRET_PAT")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 

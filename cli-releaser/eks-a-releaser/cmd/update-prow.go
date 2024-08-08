@@ -68,12 +68,8 @@ func updateTemplaterFile() {
 	// var holds updated full file path
 	templaterFilePath := "/templater/jobs/periodic/eks-anywhere-build-tooling/" + latestFileName
 
-	// create client
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	// create client 
+	accessToken := os.Getenv("SECRET_PAT")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
@@ -194,11 +190,9 @@ func updateTemplaterFile() {
 }
 
 func createFile(repoOwner, repoName, filePath, content string) error {
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+
+	accessToken := os.Getenv("SECRET_PAT")
+
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/contents/%s", repoOwner, repoName, filePath)
 
 	encodedContent := base64.StdEncoding.EncodeToString([]byte(content))
@@ -285,12 +279,9 @@ func createPullRequest(ctx context.Context, client *github.Client, baseBranch, t
 
 
 func FetchFileName(owner, repo, dir, branch string)(string, error){
+
 	// create client
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	accessToken := os.Getenv("SECRET_PAT")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
@@ -321,5 +312,6 @@ func FetchFileName(owner, repo, dir, branch string)(string, error){
 
 	return "file not found", nil
 }
+
 // successfully deletes old file and creates new file on forked repo, eks-a-releaser branch 
-// successfully creates a PR targetting upstream repo with the new commits 
+// successfully creates a PR targetting upstream prow jobs repo with the new commits, merges into "main" branch

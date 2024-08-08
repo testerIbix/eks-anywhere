@@ -15,8 +15,11 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
@@ -73,15 +76,8 @@ func runAllStagebundle() error {
 
 func updateBundleNum() error {
 
-	//create client
-	// secretName := "Secret"
-	// accessToken, err := getSecretValue(secretName)
-	// if err != nil {
-	// 	fmt.Print("error getting secret", err)
-	// }
-
+	// create client 
 	accessToken := os.Getenv("SECRET_PAT")
-
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
@@ -279,4 +275,100 @@ func createPullRequestStageBundleTwo() error{
 
 	log.Printf("Pull request created: %s\n", pr.GetHTMLURL())
 	return nil
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// User represents the user's GitHub account information.
+type User struct {
+	Login             string `json:"login"`
+	ID                int    `json:"id"`
+	NodeID            string `json:"node_id"`
+	AvatarURL         string `json:"avatar_url"`
+	GravatarID        string `json:"gravatar_id"`
+	URL               string `json:"url"`
+	HTMLURL           string `json:"html_url"`
+	FollowersURL      string `json:"followers_url"`
+	FollowingURL      string `json:"following_url"`
+	GistsURL          string `json:"gists_url"`
+	StarredURL        string `json:"starred_url"`
+	SubscriptionsURL  string `json:"subscriptions_url"`
+	OrganizationsURL  string `json:"organizations_url"`
+	ReposURL          string `json:"repos_url"`
+	EventsURL         string `json:"events_url"`
+	ReceivedEventsURL string `json:"received_events_url"`
+	Type              string `json:"type"`
+	SiteAdmin         bool   `json:"site_admin"`
+	Name              string `json:"name"`
+	Company           string `json:"company"`
+	Blog              string `json:"blog"`
+	Location          string `json:"location"`
+	Email             string `json:"email"`
+	Hireable          bool   `json:"hireable"`
+	Bio               string `json:"bio"`
+	TwitterUsername   string `json:"twitter_username"`
+	PublicRepos       int    `json:"public_repos"`
+	PublicGists       int    `json:"public_gists"`
+	Followers         int    `json:"followers"`
+	Following         int    `json:"following"`
+	CreatedAt         string `json:"created_at"`
+	UpdatedAt         string `json:"updated_at"`
+}
+
+func getAuthenticatedUsername() string {
+
+	// username is fetched using gh PAT
+	accessToken := os.Getenv("SECRET_PAT")
+	// github PAT is retrieved from secrets manager / buildspec file
+
+	// Create a new HTTP client
+	client := &http.Client{}
+
+	// Create a new HTTP request
+	req, err := http.NewRequest("GET", "https://api.github.com/user", nil)
+	if err != nil {
+		return "error creating HTTP request"
+	}
+
+	// Set the authorization header with the personal access token
+	req.Header.Set("Authorization", "token "+accessToken)
+
+	// Send the HTTP request
+	resp, err := client.Do(req)
+	if err != nil {
+		return "error sending HTTP request"
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "error reading response body"
+	}
+
+	// Check if the request was successful
+	if resp.StatusCode != http.StatusOK {
+		return "failed to retrieve user information"
+	}
+
+	// Unmarshal the response body into a User struct
+	var user User
+	err = json.Unmarshal(body, &user)
+	if err != nil {
+		return "error unmarshalling"
+	}
+
+	stringUser := user.Login
+	return stringUser
 }
