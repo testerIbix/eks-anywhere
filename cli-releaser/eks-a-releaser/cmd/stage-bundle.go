@@ -29,7 +29,7 @@ var (
 	cliMaxVersionPath       = "release/triggers/bundle-release/development/CLI_MAX_VERSION"
 	cliMinVersionPath       = "release/triggers/bundle-release/development/CLI_MIN_VERSION"
 	//triggerFilePath         = "release/triggers/eks-a-releaser-trigger"
-	forkedRepoAccount = "ibix16"
+	forkedRepoAccount = getAuthenticatedUsername()
 )
 
 // stageBundleCmd represents the stageBundle command
@@ -74,11 +74,14 @@ func runAllStagebundle() error {
 func updateBundleNum() error {
 
 	//create client
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	// secretName := "Secret"
+	// accessToken, err := getSecretValue(secretName)
+	// if err != nil {
+	// 	fmt.Print("error getting secret", err)
+	// }
+
+	accessToken := os.Getenv("SECRET_PAT")
+
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
@@ -136,11 +139,7 @@ func updateBundleNum() error {
 func updateCLIMax() error {
 
 	//create client
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	accessToken := os.Getenv("SECRET_PAT")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
@@ -197,11 +196,7 @@ func updateCLIMax() error {
 func updateCLIMin() error {
 
 	//create client
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	accessToken := os.Getenv("SECRET_PAT")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
@@ -260,11 +255,7 @@ func createPullRequestStageBundleTwo() error{
 	latestRelease := os.Getenv("LATEST_RELEASE")
 
 	// create client
-	secretName := "Secret"
-	accessToken, err := getSecretValue(secretName)
-	if err != nil {
-		fmt.Print("error getting secret", err)
-	}
+	accessToken := os.Getenv("SECRET_PAT")
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
