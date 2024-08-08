@@ -6,19 +6,18 @@ package cmd
 /*
 	what does this command do?
 
-	this command is responsible for accessing the trigger file and creating a new release branch in 2 repos, bot fork of eks-A and build-tooling
-	the trigger file within the "eks-a-releaser" branch is accessed and its "release: release-0.00" contents are extracted
+	this command is responsible for accessing the trigger file and creating a new release branch in 2 repos, bot's fork of eks-Anywhere and build-tooling
+	the trigger file within the "eks-a-releaser" branch of the bot's fork is accessed and its "release: release-0.00" contents are extracted
 	next, a new branch is created using the extracted release value within the eks-anywhere and build-tooling repo
 
-	Release Process Timeline :
-	(1) User first updates trigger file contents within "eks-a-releaser" branch ~ bot's fork of eks-A
-	(2) Codebuild/Pipeline pulls the latest release version to update/create branch from the trigger file
-	(4) This command will be the first one to be executed and the new release branch will be created
+	branches are created on bot's fork
+	PR fails to reflect newly created branches on upstream repo
 */
 
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/google/go-github/v62/github"
 	"github.com/spf13/cobra"
@@ -26,7 +25,7 @@ import (
 
 var (
 	buildToolingRepoName = "eks-anywhere-build-tooling"
-	upStreamOwner = "testerIbix" // will eventually be replaced by actual upstream owner, aws
+	upStreamRepoOwner = "testerIbix" // will eventually be replaced by actual upstream owner, aws
 )
 
 // createBranchCmd represents the createBranch command
@@ -73,19 +72,20 @@ func createAnywhereBranch() error {
 
 
 	
-	newBranch := getLatestRelease()
-	ref := "refs/heads/" + newBranch
+	latestRelease := os.Getenv("LATEST_RELEASE")
+
+	ref := "refs/heads/" + latestRelease
 	baseRef := "eks-a-releaser" //newly created release branch will be based from this branch
-	// future ref : once intergrated into aws repo, baseRef var can := desiredPart - 1 , our new release-0.00 value minus one to be based on previous release branch
+	
 
 	// Get the reference for the base branch
-	baseRefObj, _, err := client.Git.GetRef(ctx, botForkAccount, repoName, "heads/"+baseRef)
+	baseRefObj, _, err := client.Git.GetRef(ctx, forkedRepoAccount, EKSAnyrepoName, "heads/"+baseRef)
 	if err != nil {
 		return fmt.Errorf("error getting base branch reference: %v", err)
 	}
 
 	// Create a new branch
-	newBranchRef, _, err := client.Git.CreateRef(ctx, botForkAccount, repoName, &github.Reference{
+	newBranchRef, _, err := client.Git.CreateRef(ctx, forkedRepoAccount, EKSAnyrepoName, &github.Reference{
 		Ref: &ref,
 		Object: &github.GitObject{
 			SHA: baseRefObj.Object.SHA,
@@ -100,11 +100,11 @@ func createAnywhereBranch() error {
 	
 
 	// create pull request targeting upstream eks-A repo
-	title := fmt.Sprintf("Release branch %s", newBranch)
+	title := fmt.Sprintf("Release branch %s", latestRelease)
 	body := "This is a pull request for the new release branch."
-	head := fmt.Sprintf("%s:%s", botForkAccount, newBranch)
+	head := fmt.Sprintf("%s:%s", forkedRepoAccount, latestRelease)
 	base := "main"
-	pr, _, err := client.PullRequests.Create(ctx, upStreamOwner, repoName, &github.NewPullRequest{
+	pr, _, err := client.PullRequests.Create(ctx, upStreamRepoOwner, EKSAnyrepoName, &github.NewPullRequest{
 		Title: &title,
 		Body:  &body,
 		Head:  &head,
@@ -136,19 +136,19 @@ func createBuildToolingBranch() error {
 
 
 	// Create a new reference for the new branch
-	newBranch := getLatestRelease()
-	ref := "refs/heads/" + newBranch
+	latestRelease := os.Getenv("LATEST_RELEASE")
+	ref := "refs/heads/" + latestRelease
 	baseRef := "main" //newly created release branch will be based from this branch
 	
 
 	// Get the reference for the base branch
-	baseRefObj, _, err := client.Git.GetRef(ctx, botForkAccount, buildToolingRepoName, "heads/"+baseRef)
+	baseRefObj, _, err := client.Git.GetRef(ctx, forkedRepoAccount, buildToolingRepoName, "heads/"+baseRef)
 	if err != nil {
 		return fmt.Errorf("error getting base branch reference: %v", err)
 	}
 
 	// Create a new branch
-	newBranchRef, _, err := client.Git.CreateRef(ctx, botForkAccount, buildToolingRepoName, &github.Reference{
+	newBranchRef, _, err := client.Git.CreateRef(ctx, forkedRepoAccount, buildToolingRepoName, &github.Reference{
 		Ref: &ref,
 		Object: &github.GitObject{
 			SHA: baseRefObj.Object.SHA,
@@ -165,11 +165,11 @@ func createBuildToolingBranch() error {
 
 
 	// create pull request targeting upstream build-tooling repo
-	title := fmt.Sprintf("Release branch %s", newBranch)
+	title := fmt.Sprintf("Release branch %s", latestRelease)
 	body := "This is a pull request for the new release branch."
-	head := fmt.Sprintf("%s:%s", botForkAccount, newBranch)
+	head := fmt.Sprintf("%s:%s", forkedRepoAccount, latestRelease)
 	base := "main"
-	pr, _, err := client.PullRequests.Create(ctx, upStreamOwner, buildToolingRepoName, &github.NewPullRequest{
+	pr, _, err := client.PullRequests.Create(ctx, upStreamRepoOwner, buildToolingRepoName, &github.NewPullRequest{
 		Title: &title,
 		Body:  &body,
 		Head:  &head,
@@ -183,6 +183,3 @@ func createBuildToolingBranch() error {
 	return nil
 
 }
-
-// release branches are correctly created on bot's fork
-// PR targeting upstream not created correctly 

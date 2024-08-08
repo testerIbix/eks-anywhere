@@ -7,15 +7,17 @@ package cmd
 	what does this command do?
 
 	currently :
-	updateTemplaterFile() - accessess the templater file from the provided path on "eks-a-releaser" branch, bot's fork
+
+	updateTemplaterFile() - accessess the templater file from the provided path on "eks-a-releaser" branch, forked repo
 	retrieves content from templater file
+
 	updates file content to point to new release, stores updated file content in a variable
 	creates new file path/name by altering previous file & updating "release-0.00.yaml" portion
 
 	deletes previously exisiting file using previous file path/name ~ templaterFilePath
 	creates a new file using the updated file path/name and the updated file content
 
-	commits changes to prow-jobs repo "eks-a-releaser" branch, bot fork / ibix16 fork
+	commits changes to prow-jobs repo "eks-a-releaser" branch, forked repo
 
 	raises PR with commits targeting upstream repo "main" branch
 */
@@ -28,6 +30,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/google/go-github/v62/github"
@@ -52,11 +55,12 @@ and usage of using your command.`,
 
 
 func updateTemplaterFile() {
+
 	// var holds latest release retrieved from trigger file
-	latestRelease := getLatestRelease()
+	latestRelease := os.Getenv("LATEST_RELEASE")
 
 	// var holds latest file name
-	latestFileName, err := FetchFileName(botForkAccount, prowRepoName, "templater/jobs/periodic/eks-anywhere-build-tooling", "eks-a-releaser")
+	latestFileName, err := FetchFileName(forkedRepoAccount, prowRepoName, "templater/jobs/periodic/eks-anywhere-build-tooling", "eks-a-releaser")
 	if err != nil {
 		fmt.Print("error fetching file names", err)
 	}
@@ -74,11 +78,11 @@ func updateTemplaterFile() {
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
 	opts := &github.RepositoryContentGetOptions{
-		Ref: "eks-a-releaser", // Updated to target eks-a-releaser branch
+		Ref: "eks-a-releaser", // branch to access
 	}
 
 	// access templater file on eks-a-releaser branch and retrieve entire file contents
-	templaterFileContent, _, _, err := client.Repositories.GetContents(ctx, botForkAccount, prowRepoName, templaterFilePath, opts)
+	templaterFileContent, _, _, err := client.Repositories.GetContents(ctx, forkedRepoAccount, prowRepoName, templaterFilePath, opts)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
 	}
@@ -163,7 +167,7 @@ func updateTemplaterFile() {
 
 	parts := strings.Split(prevFileName, "periodics-")
 
-	// index 1 : release-0.19.yaml
+	// index 1 : release-0.00.yaml
 	// index 0 : /templater/jobs/periodic/eks-anywhere-build-tooling/eks-anywhere-attribution-
 	fmt.Print(parts[0])
 
@@ -173,12 +177,12 @@ func updateTemplaterFile() {
 	// the updated file path including the file name for the new file that needs to be created ~ in a string variable : newString
 
 
-	err = deleteFile(ctx, client, botForkAccount, prowRepoName, prevFileName, "eks-a-releaser")
+	err = deleteFile(ctx, client, forkedRepoAccount, prowRepoName, prevFileName, "eks-a-releaser")
 	if err != nil {
 		fmt.Printf("error:  %s", err)
 	}
 
-	err = createFile(botForkAccount, prowRepoName, newFilePathString, secondUpdatedFileContent)
+	err = createFile(forkedRepoAccount, prowRepoName, newFilePathString, secondUpdatedFileContent)
 	if err != nil {
 		fmt.Printf("error:  %s", err)
 	}
@@ -258,7 +262,7 @@ func deleteFile(ctx context.Context, client *github.Client, repoOwner, repoName,
 
 func createPullRequest(ctx context.Context, client *github.Client, baseBranch, title, body string) error {
 
-	head := fmt.Sprintf("%s:%s", botForkAccount, "eks-a-releaser")
+	head := fmt.Sprintf("%s:%s", forkedRepoAccount, "eks-a-releaser")
 
 	newPR := &github.NewPullRequest{
 		Title: github.String(title),
@@ -267,9 +271,8 @@ func createPullRequest(ctx context.Context, client *github.Client, baseBranch, t
 		Body:  github.String(body),
 	}
 
-	targetRepoOwner := "testerIbix"
 
-	pr, _, err := client.PullRequests.Create(ctx, targetRepoOwner, prowRepoName, newPR)
+	pr, _, err := client.PullRequests.Create(ctx, upStreamRepoOwner, prowRepoName, newPR)
 	if err != nil {
 		return err
 	}
@@ -318,8 +321,5 @@ func FetchFileName(owner, repo, dir, branch string)(string, error){
 
 	return "file not found", nil
 }
-
-
-
-// successfully deletes old file and creates new file on bot's fork, eks-a-releaser branch 
-// successfully creates a PR targetting upstream main repo with the new commits 
+// successfully deletes old file and creates new file on forked repo, eks-a-releaser branch 
+// successfully creates a PR targetting upstream repo with the new commits 

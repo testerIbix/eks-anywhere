@@ -5,19 +5,19 @@ package cmd
 
 /*
 	what does this command do?
-	this command is responsible for accessing the trigger file from the "eks-a-releaser" branch, ibix16 account fork
 
-	5 seperate functions have been created in total, 3 out of the 5 are responsible for updating the three distinct files and committing changes to "eks-a-releaser" branch, ibix16 account fork
+	this command is responsible for staging bundle release
 
-	1 function is responsible for creating a PR containing the 3 commits, the last function runs all 4 of the other funcs
+	Fetches env variables passed in from pipeline UI
 
-	The pull request is created using the 3 commits from "eks-a-releaser" branch bot fork and is intended to be merged into latest release branch on the upstream repo
+	The pull request is created using the 3 commits from "eks-a-releaser" branch forked repo and is intended to be merged into latest release branch on the upstream repo
 */
 
 import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/google/go-github/v62/github"
@@ -28,8 +28,8 @@ var (
 	bundleNumPath           = "release/triggers/bundle-release/development/BUNDLE_NUMBER"
 	cliMaxVersionPath       = "release/triggers/bundle-release/development/CLI_MAX_VERSION"
 	cliMinVersionPath       = "release/triggers/bundle-release/development/CLI_MIN_VERSION"
-	triggerFilePath         = "release/triggers/eks-a-releaser-trigger"
-	botForkAccount = "ibix16"
+	//triggerFilePath         = "release/triggers/eks-a-releaser-trigger"
+	forkedRepoAccount = "ibix16"
 )
 
 // stageBundleCmd represents the stageBundle command
@@ -82,57 +82,19 @@ func updateBundleNum() error {
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
-	opts := &github.RepositoryContentGetOptions{
-		Ref: "eks-a-releaser", // specify branch
-	}
+	bundleNumber := os.Getenv("RELEASE_NUMBER")
 
-	// access trigger file
-	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, botForkAccount, repoName, triggerFilePath, opts)
-	if err != nil {
-		fmt.Print("first breakpoint", err)
-	}
-	content, err := triggerFileContentBundleNumber.GetContent()
-	if err != nil {
-		fmt.Print("second breakpoint", err)
-	}
 
-	// Find the line containing the identifier
-	snippetStartIdentifierB := "number: "
-	lines := strings.Split(content, "\n")
-	startIndex := -1
-	endIndex := -1
-
-	for i, line := range lines {
-		if strings.Contains(line, snippetStartIdentifierB) {
-			startIndex = i
-			endIndex = i // Set endIndex to the same line as startIndex
-			break
-		}
-	}
-	if startIndex == -1 && endIndex == -1 {
-		//return fmt.Errorf("snippet not found", nil)  // Snippet not found
-		log.Panic("snippet not found...")
-	}
-
-	// holds full string
-	bundleNumberLine := lines[startIndex]
-
-	// split string to isolate bundle number
-	parts := strings.Split(bundleNumberLine, ": ")
-
-	// holds bundle number value as string
-	desiredPart := parts[1]
-
-	// get latest commit sha
-	ref, _, err := client.Git.GetRef(ctx, botForkAccount, repoName, "heads/eks-a-releaser")
+	// get latest commit sha from branch "eks-a-releaser"
+	ref, _, err := client.Git.GetRef(ctx, forkedRepoAccount, EKSAnyrepoName, "heads/eks-a-releaser")
 	if err != nil {
 		return fmt.Errorf("error getting ref %s", err)
 	}
 	latestCommitSha := ref.Object.GetSHA()
 
 	entries := []*github.TreeEntry{}
-	entries = append(entries, &github.TreeEntry{Path: github.String(strings.TrimPrefix(bundleNumPath, "/")), Type: github.String("blob"), Content: github.String(string(desiredPart)), Mode: github.String("100644")})
-	tree, _, err := client.Git.CreateTree(ctx, botForkAccount, repoName, *ref.Object.SHA, entries)
+	entries = append(entries, &github.TreeEntry{Path: github.String(strings.TrimPrefix(bundleNumPath, "/")), Type: github.String("blob"), Content: github.String(string(bundleNumber)), Mode: github.String("100644")})
+	tree, _, err := client.Git.CreateTree(ctx, forkedRepoAccount, EKSAnyrepoName, *ref.Object.SHA, entries)
 	if err != nil {
 		return fmt.Errorf("error creating tree %s", err)
 	}
@@ -140,10 +102,10 @@ func updateBundleNum() error {
 	//validate tree sha
 	newTreeSHA := tree.GetSHA()
 
-	// create new commit
+	// create new commit, update email address
 	author := &github.CommitAuthor{
 		Name:  github.String("ibix16"),
-		Email: github.String("ibixrivera16@gmail.com"),
+		Email: github.String("fake@wtv.com"),
 	}
 
 	commit := &github.Commit{
@@ -154,7 +116,7 @@ func updateBundleNum() error {
 	}
 
 	commitOP := &github.CreateCommitOptions{}
-	newCommit, _, err := client.Git.CreateCommit(ctx, botForkAccount, repoName, commit, commitOP)
+	newCommit, _, err := client.Git.CreateCommit(ctx, forkedRepoAccount, EKSAnyrepoName, commit, commitOP)
 	if err != nil {
 		return fmt.Errorf("creating commit %s", err)
 	}
@@ -163,7 +125,7 @@ func updateBundleNum() error {
 	// update branch reference
 	ref.Object.SHA = github.String(newCommitSHA)
 
-	_, _, err = client.Git.UpdateRef(ctx, botForkAccount, repoName, ref, false)
+	_, _, err = client.Git.UpdateRef(ctx, forkedRepoAccount, EKSAnyrepoName, ref, false)
 	if err != nil {
 		return fmt.Errorf("error updating ref %s", err)
 	}
@@ -182,57 +144,19 @@ func updateCLIMax() error {
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
-	opts := &github.RepositoryContentGetOptions{
-		Ref: "eks-a-releaser", // Replace with the desired branch name
-	}
+	latestVersion := os.Getenv("LATEST_VERSION")
 
-	// access trigger file
-	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, botForkAccount, repoName, triggerFilePath, opts)
-	if err != nil {
-		fmt.Print("first breakpoint", err)
-	}
-	content, err := triggerFileContentBundleNumber.GetContent()
-	if err != nil {
-		fmt.Print("second breakpoint", err)
-	}
 
-	// Find the line containing the identifier
-	snippetStartIdentifierB := "version: "
-	lines := strings.Split(content, "\n")
-	startIndex := -1
-	endIndex := -1
-
-	for i, line := range lines {
-		if strings.Contains(line, snippetStartIdentifierB) {
-			startIndex = i
-			endIndex = i // Set endIndex to the same line as startIndex
-			break
-		}
-	}
-	if startIndex == -1 && endIndex == -1 {
-		//return fmt.Errorf("snippet not found", nil)  // Snippet not found
-		log.Panic("snippet not found...")
-	}
-
-	// holds full string
-	bundleNumberLine := lines[startIndex]
-
-	// split string to isolate bundle number
-	parts := strings.Split(bundleNumberLine, ": ")
-
-	// holds bundle number value as string
-	desiredPart := parts[1]
-
-	// get latest commit sha
-	ref, _, err := client.Git.GetRef(ctx, botForkAccount, repoName, "heads/eks-a-releaser")
+	// get latest commit sha from branch "eks-a-releaser"
+	ref, _, err := client.Git.GetRef(ctx, forkedRepoAccount, EKSAnyrepoName, "heads/eks-a-releaser")
 	if err != nil {
 		return fmt.Errorf("error getting ref %s", err)
 	}
 	latestCommitSha := ref.Object.GetSHA()
 
 	entries := []*github.TreeEntry{}
-	entries = append(entries, &github.TreeEntry{Path: github.String(strings.TrimPrefix(cliMaxVersionPath, "/")), Type: github.String("blob"), Content: github.String(string(desiredPart)), Mode: github.String("100644")})
-	tree, _, err := client.Git.CreateTree(ctx, botForkAccount, repoName, *ref.Object.SHA, entries)
+	entries = append(entries, &github.TreeEntry{Path: github.String(strings.TrimPrefix(cliMaxVersionPath, "/")), Type: github.String("blob"), Content: github.String(string(latestVersion)), Mode: github.String("100644")})
+	tree, _, err := client.Git.CreateTree(ctx, forkedRepoAccount, EKSAnyrepoName, *ref.Object.SHA, entries)
 	if err != nil {
 		return fmt.Errorf("error creating tree %s", err)
 	}
@@ -240,10 +164,10 @@ func updateCLIMax() error {
 	//validate tree sha
 	newTreeSHA := tree.GetSHA()
 
-	// create new commit
+	// create new commit, update email address
 	author := &github.CommitAuthor{
 		Name:  github.String("ibix16"),
-		Email: github.String("ibixrivera16@gmail.com"),
+		Email: github.String("fake@wtv.com"),
 	}
 
 	commit := &github.Commit{
@@ -254,7 +178,7 @@ func updateCLIMax() error {
 	}
 
 	commitOP := &github.CreateCommitOptions{}
-	newCommit, _, err := client.Git.CreateCommit(ctx, botForkAccount, repoName, commit, commitOP)
+	newCommit, _, err := client.Git.CreateCommit(ctx, forkedRepoAccount, EKSAnyrepoName, commit, commitOP)
 	if err != nil {
 		return fmt.Errorf("creating commit %s", err)
 	}
@@ -263,11 +187,10 @@ func updateCLIMax() error {
 	// update branch reference
 	ref.Object.SHA = github.String(newCommitSHA)
 
-	_, _, err = client.Git.UpdateRef(ctx, botForkAccount, repoName, ref, false)
+	_, _, err = client.Git.UpdateRef(ctx, forkedRepoAccount, EKSAnyrepoName, ref, false)
 	if err != nil {
 		return fmt.Errorf("error updating ref %s", err)
 	}
-
 	return nil
 }
 
@@ -282,57 +205,19 @@ func updateCLIMin() error {
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
-	opts := &github.RepositoryContentGetOptions{
-		Ref: "eks-a-releaser", // Replace with the desired branch name
-	}
+	latestVersion := os.Getenv("LATEST_VERSION")
 
-	// access trigger file 
-	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, botForkAccount, repoName, triggerFilePath, opts)
-	if err != nil {
-		fmt.Print("first breakpoint", err)
-	}
-	content, err := triggerFileContentBundleNumber.GetContent()
-	if err != nil {
-		fmt.Print("second breakpoint", err)
-	}
 
-	// Find the line containing the identifier
-	snippetStartIdentifierB := "version: "
-	lines := strings.Split(content, "\n")
-	startIndex := -1
-	endIndex := -1
-
-	for i, line := range lines {
-		if strings.Contains(line, snippetStartIdentifierB) {
-			startIndex = i
-			endIndex = i // Set endIndex to the same line as startIndex
-			break
-		}
-	}
-	if startIndex == -1 && endIndex == -1 {
-		//return fmt.Errorf("snippet not found", nil)  // Snippet not found
-		log.Panic("snippet not found...")
-	}
-
-	// holds full string
-	bundleNumberLine := lines[startIndex]
-
-	// split string to isolate bundle number
-	parts := strings.Split(bundleNumberLine, ": ")
-
-	// holds bundle number value as string
-	desiredPart := parts[1]
-
-	// get latest commit sha
-	ref, _, err := client.Git.GetRef(ctx, botForkAccount, repoName, "heads/eks-a-releaser")
+	// get latest commit sha from branch "eks-a-releaser"
+	ref, _, err := client.Git.GetRef(ctx, forkedRepoAccount, EKSAnyrepoName, "heads/eks-a-releaser")
 	if err != nil {
 		return fmt.Errorf("error getting ref %s", err)
 	}
 	latestCommitSha := ref.Object.GetSHA()
 
 	entries := []*github.TreeEntry{}
-	entries = append(entries, &github.TreeEntry{Path: github.String(strings.TrimPrefix(cliMinVersionPath, "/")), Type: github.String("blob"), Content: github.String(string(desiredPart)), Mode: github.String("100644")})
-	tree, _, err := client.Git.CreateTree(ctx, botForkAccount, repoName, *ref.Object.SHA, entries)
+	entries = append(entries, &github.TreeEntry{Path: github.String(strings.TrimPrefix(cliMinVersionPath, "/")), Type: github.String("blob"), Content: github.String(string(latestVersion)), Mode: github.String("100644")})
+	tree, _, err := client.Git.CreateTree(ctx, forkedRepoAccount, EKSAnyrepoName, *ref.Object.SHA, entries)
 	if err != nil {
 		return fmt.Errorf("error creating tree %s", err)
 	}
@@ -340,10 +225,10 @@ func updateCLIMin() error {
 	//validate tree sha
 	newTreeSHA := tree.GetSHA()
 
-	// create new commit
+	// create new commit, update email address
 	author := &github.CommitAuthor{
 		Name:  github.String("ibix16"),
-		Email: github.String("ibixrivera16@gmail.com"),
+		Email: github.String("fake@wtv.com"),
 	}
 
 	commit := &github.Commit{
@@ -354,7 +239,7 @@ func updateCLIMin() error {
 	}
 
 	commitOP := &github.CreateCommitOptions{}
-	newCommit, _, err := client.Git.CreateCommit(ctx, botForkAccount, repoName, commit, commitOP)
+	newCommit, _, err := client.Git.CreateCommit(ctx, forkedRepoAccount, EKSAnyrepoName, commit, commitOP)
 	if err != nil {
 		return fmt.Errorf("creating commit %s", err)
 	}
@@ -363,18 +248,18 @@ func updateCLIMin() error {
 	// update branch reference
 	ref.Object.SHA = github.String(newCommitSHA)
 
-	_, _, err = client.Git.UpdateRef(ctx, botForkAccount, repoName, ref, false)
+	_, _, err = client.Git.UpdateRef(ctx, forkedRepoAccount, EKSAnyrepoName, ref, false)
 	if err != nil {
 		return fmt.Errorf("error updating ref %s", err)
 	}
-
 	return nil
 }
 
 func createPullRequestStageBundleTwo() error{
 
-	latestRelease := getLatestRelease()
+	latestRelease := os.Getenv("LATEST_RELEASE")
 
+	// create client
 	secretName := "Secret"
 	accessToken, err := getSecretValue(secretName)
 	if err != nil {
@@ -383,10 +268,9 @@ func createPullRequestStageBundleTwo() error{
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
-	targetOwner := "testerIbix"
 
-	base := latestRelease // target branch
-	head := fmt.Sprintf("%s:%s", botForkAccount, "eks-a-releaser")
+	base := latestRelease // target branch for upstream repo
+	head := fmt.Sprintf("%s:%s", forkedRepoAccount, "eks-a-releaser")
 	title := "Update version files to stage bundle release"
 	body := "This pull request is responsible for updating the contents of 3 separate files in order to trigger the staging bundle release pipeline"
 
@@ -397,7 +281,7 @@ func createPullRequestStageBundleTwo() error{
 		Body:  &body,
 	}
 
-	pr, _, err := client.PullRequests.Create(ctx, targetOwner, repoName, newPR)
+	pr, _, err := client.PullRequests.Create(ctx, upStreamRepoOwner, EKSAnyrepoName, newPR)
 	if err != nil {
 		return fmt.Errorf("error creating PR %s", err)
 	}
