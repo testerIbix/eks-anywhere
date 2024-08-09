@@ -21,7 +21,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/google/go-github/v62/github"
 	"github.com/spf13/cobra"
@@ -56,6 +55,11 @@ func runBothTag(){
 		log.Panic(errTwo)
 	}
 
+	err := createReleasePR(rel)
+	if err != nil {
+		log.Panic(err)
+	}
+
 	//print release object
 	fmt.Print(rel)
 }
@@ -68,7 +72,11 @@ func createTag(commitHash string) (*github.RepositoryRelease, error){
 	version := retrieveLatestVersion()
 
 	//create client
-	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
+	secretName := "Secret"
+	accessToken, err := getSecretValue(secretName)
+	if err != nil {
+		fmt.Print("error getting secret", err)
+	}
 	ctx := context.Background()
 
 	// Create a new GitHub client instance with the token type set to "Bearer"
@@ -89,7 +97,7 @@ func createTag(commitHash string) (*github.RepositoryRelease, error){
 		TargetCommitish: github.String(commitSHA),
 	}
 
-	rel, _, err := client.Repositories.CreateRelease(ctx, PersonalforkedRepoOwner, repoName, release)
+	rel, _, err := client.Repositories.CreateRelease(ctx, botForkAccount, repoName, release)
 	if err != nil {
 		fmt.Printf("error creating release: %v", err)
 	}
@@ -103,7 +111,11 @@ func createTag(commitHash string) (*github.RepositoryRelease, error){
 func retrieveLatestProdCLIHash() string {
 	
 	//create client
-	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
+	secretName := "Secret"
+	accessToken, err := getSecretValue(secretName)
+	if err != nil {
+		fmt.Print("error getting secret", err)
+	}
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
@@ -113,7 +125,7 @@ func retrieveLatestProdCLIHash() string {
     }
 
 	
-	commits, _, err := client.Repositories.ListCommits(ctx, PersonalforkedRepoOwner, repoName, opts)
+	commits, _, err := client.Repositories.ListCommits(ctx, botForkAccount, repoName, opts)
     if err != nil {
         return "error fetching commits list"
     }
@@ -133,11 +145,15 @@ func createGitHubRelease(releaseTag *github.RepositoryRelease) (*github.Reposito
 	version := retrieveLatestVersion() // "v0.0.00"
 
 	//create client
-	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
+	secretName := "Secret"
+	accessToken, err := getSecretValue(secretName)
+	if err != nil {
+		fmt.Print("error getting secret", err)
+	}
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
-	release, _, err := client.Repositories.GetReleaseByTag(ctx, PersonalforkedRepoOwner, repoName, version)
+	release, _, err := client.Repositories.GetReleaseByTag(ctx, botForkAccount, repoName, version)
     if err == nil {
         fmt.Printf("Release %s already exists!\n", version)
         return release, nil
@@ -149,7 +165,7 @@ func createGitHubRelease(releaseTag *github.RepositoryRelease) (*github.Reposito
         Body:    releaseTag.Body,
     }
 
-    rel, _, err := client.Repositories.CreateRelease(ctx, PersonalforkedRepoOwner, repoName, release)
+    rel, _, err := client.Repositories.CreateRelease(ctx, botForkAccount, repoName, release)
     if err != nil {
         return nil, err
     }
@@ -158,3 +174,44 @@ func createGitHubRelease(releaseTag *github.RepositoryRelease) (*github.Reposito
 }
 
 
+
+func createReleasePR(release *github.RepositoryRelease) error {
+
+	latestRelease := getLatestRelease()
+	//create client
+	secretName := "Secret"
+	accessToken, err := getSecretValue(secretName)
+	if err != nil {
+		fmt.Print("error getting secret", err)
+	}
+	ctx := context.Background()
+	client := github.NewClient(nil).WithAuthToken(accessToken)
+
+
+	
+	
+	// Prepare pull request details
+	title := fmt.Sprintf("Release %s", release.GetTagName())
+	body := fmt.Sprintf("This pull request contains the release %s", release.GetTagName())
+	head := fmt.Sprintf("%s:%s", botForkAccount, "eks-a-releaser")
+	base := latestRelease
+
+	fmt.Printf("Head parameter value: %s\n", head)
+	// Create a pull request
+	pr, _, err := client.PullRequests.Create(ctx, upStreamOwner, repoName, &github.NewPullRequest{
+		Title: &title,
+		Body:  &body,
+		Head:  &head,
+		Base:  &base,
+	})
+	if err != nil {
+		return fmt.Errorf("error creating pull request: %v", err)
+	}
+
+	fmt.Printf("Pull request created: %s\n", pr.GetHTMLURL())
+	return nil
+	
+}
+
+// correctly creates tag and release within bot's fork
+// PR creation does not include tag and release, potentially look into the fact they do not register as commits 

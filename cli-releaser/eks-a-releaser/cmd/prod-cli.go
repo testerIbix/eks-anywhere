@@ -17,7 +17,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/google/go-github/v62/github"
@@ -59,7 +58,11 @@ func updateAllProdCliFiles() {
 func updateProdReleaseNumber() error {
 
 	//create client
-	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
+	secretName := "Secret"
+	accessToken, err := getSecretValue(secretName)
+	if err != nil {
+		fmt.Print("error getting secret", err)
+	}
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
@@ -68,7 +71,7 @@ func updateProdReleaseNumber() error {
 	}
 
 	// access trigger file 
-	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, repoName, triggerFilePath, opts)
+	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, botForkAccount, repoName, triggerFilePath, opts)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
 	}
@@ -104,7 +107,7 @@ func updateProdReleaseNumber() error {
 	desiredPart := parts[1]
 
 	// get latest commit sha
-	ref, _, err := client.Git.GetRef(ctx, PersonalforkedRepoOwner, repoName, "heads/eks-a-releaser")
+	ref, _, err := client.Git.GetRef(ctx, botForkAccount, repoName, "heads/eks-a-releaser")
 	if err != nil {
 		return fmt.Errorf("error getting ref %s", err)
 	}
@@ -112,7 +115,7 @@ func updateProdReleaseNumber() error {
 
 	entries := []*github.TreeEntry{}
 	entries = append(entries, &github.TreeEntry{Path: github.String(strings.TrimPrefix(prodCliReleaseNumPath, "/")), Type: github.String("blob"), Content: github.String(string(desiredPart)), Mode: github.String("100644")})
-	tree, _, err := client.Git.CreateTree(ctx, PersonalforkedRepoOwner, repoName, *ref.Object.SHA, entries)
+	tree, _, err := client.Git.CreateTree(ctx, botForkAccount, repoName, *ref.Object.SHA, entries)
 	if err != nil {
 		return fmt.Errorf("error creating tree %s", err)
 	}
@@ -134,7 +137,7 @@ func updateProdReleaseNumber() error {
 	}
 
 	commitOP := &github.CreateCommitOptions{}
-	newCommit, _, err := client.Git.CreateCommit(ctx, PersonalforkedRepoOwner, repoName, commit, commitOP)
+	newCommit, _, err := client.Git.CreateCommit(ctx, botForkAccount, repoName, commit, commitOP)
 	if err != nil {
 		return fmt.Errorf("creating commit %s", err)
 	}
@@ -143,7 +146,7 @@ func updateProdReleaseNumber() error {
 	// update branch reference
 	ref.Object.SHA = github.String(newCommitSHA)
 
-	_, _, err = client.Git.UpdateRef(ctx, PersonalforkedRepoOwner, repoName, ref, false)
+	_, _, err = client.Git.UpdateRef(ctx, botForkAccount, repoName, ref, false)
 	if err != nil {
 		return fmt.Errorf("error updating ref %s", err)
 	}
@@ -151,9 +154,10 @@ func updateProdReleaseNumber() error {
 
 
 	// create pull request
+	targetOwner := "testerIbix"
 	latestRelease := getLatestRelease()
 	base := latestRelease
-	head := fmt.Sprintf("%s:%s", PersonalforkedRepoOwner, "eks-a-releaser")
+	head := fmt.Sprintf("%s:%s", botForkAccount, "eks-a-releaser")
 	title := "Update version files to stage prod cli release"
 	body := "This pull request is responsible for updating the contents of 2 seperate files in order to trigger the prod cli release pipeline"
 
@@ -164,7 +168,7 @@ func updateProdReleaseNumber() error {
 		Body:  &body,
 	}
 
-	pr, _, err := client.PullRequests.Create(ctx, PersonalforkedRepoOwner, repoName, newPR)
+	pr, _, err := client.PullRequests.Create(ctx, targetOwner, repoName, newPR)
 	if err != nil {
 		return fmt.Errorf("error creating PR %s", err)
 	}
@@ -178,7 +182,11 @@ func updateProdReleaseNumber() error {
 func updateProdReleaseVersion() error {
 
 	//create client
-	accessToken := os.Getenv("GITHUB_ACCESS_TOKEN2")
+	secretName := "Secret"
+	accessToken, err := getSecretValue(secretName)
+	if err != nil {
+		fmt.Print("error getting secret", err)
+	}
 	ctx := context.Background()
 	client := github.NewClient(nil).WithAuthToken(accessToken)
 
@@ -188,7 +196,7 @@ func updateProdReleaseVersion() error {
 	}
 
 	// access trigger file 
-	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, PersonalforkedRepoOwner, repoName, triggerFilePath, opts)
+	triggerFileContentBundleNumber, _, _, err := client.Repositories.GetContents(ctx, botForkAccount, repoName, triggerFilePath, opts)
 	if err != nil {
 		fmt.Print("first breakpoint", err)
 	}
@@ -225,7 +233,7 @@ func updateProdReleaseVersion() error {
 	desiredPart := parts[1]
 
 	// get latest commit sha
-	ref, _, err := client.Git.GetRef(ctx, PersonalforkedRepoOwner, repoName, "heads/eks-a-releaser")
+	ref, _, err := client.Git.GetRef(ctx, botForkAccount, repoName, "heads/eks-a-releaser")
 	if err != nil {
 		return fmt.Errorf("error getting ref %s", err)
 	}
@@ -233,7 +241,7 @@ func updateProdReleaseVersion() error {
 
 	entries := []*github.TreeEntry{}
 	entries = append(entries, &github.TreeEntry{Path: github.String(strings.TrimPrefix(prodCliReleaseVerPath, "/")), Type: github.String("blob"), Content: github.String(string(desiredPart)), Mode: github.String("100644")})
-	tree, _, err := client.Git.CreateTree(ctx, PersonalforkedRepoOwner, repoName, *ref.Object.SHA, entries)
+	tree, _, err := client.Git.CreateTree(ctx, botForkAccount, repoName, *ref.Object.SHA, entries)
 	if err != nil {
 		return fmt.Errorf("error creating tree %s", err)
 	}
@@ -255,7 +263,7 @@ func updateProdReleaseVersion() error {
 	}
 
 	commitOP := &github.CreateCommitOptions{}
-	newCommit, _, err := client.Git.CreateCommit(ctx, PersonalforkedRepoOwner, repoName, commit, commitOP)
+	newCommit, _, err := client.Git.CreateCommit(ctx, botForkAccount, repoName, commit, commitOP)
 	if err != nil {
 		return fmt.Errorf("creating commit %s", err)
 	}
@@ -264,7 +272,7 @@ func updateProdReleaseVersion() error {
 	// update branch reference
 	ref.Object.SHA = github.String(newCommitSHA)
 
-	_, _, err = client.Git.UpdateRef(ctx, PersonalforkedRepoOwner, repoName, ref, false)
+	_, _, err = client.Git.UpdateRef(ctx, botForkAccount, repoName, ref, false)
 	if err != nil {
 		return fmt.Errorf("error updating ref %s", err)
 	}
@@ -272,3 +280,7 @@ func updateProdReleaseVersion() error {
 	return nil
 
 }
+
+
+
+
